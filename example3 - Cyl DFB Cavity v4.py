@@ -18,7 +18,7 @@
 
 import numpy as np    # Array math.functions.  Used here for `argmax()`.
 
-import pyFIMM as pf   # Every script must begin with this line
+import pyfimm as pf   # Every script must begin with this line
 ''' Get help on commands and objects by typing things into the console, like:
 >>> help(pyfimm)   or after the above import,    >>> help(pf)
 >>> help(pyfimm.set_mode_solver)

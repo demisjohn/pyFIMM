@@ -30,7 +30,7 @@ This will enable various levels of extra output, that aids in finding out where 
 '''
 
 
-import pyFIMM as pf   # Every script must begin with this line
+import pyfimm as pf   # Every script must begin with this line
 #pf.set_DEBUG()      # Enable Debugging output
 
 pf.connect()        # this connects to the FimmWave application.  The FimmWave program should already be open (pdPythonLib.StartApplication() is not supported yet)
