@@ -478,14 +478,14 @@ class CavityMode(object):
             if return_handles:     return fig1, ax1, (l1, l2, vlines_out), leg
             
         #end if(comp='EigV')
-
-
-
-        '''
+        
+        
+        
+            """
         -----------------------------------
-        2nd case: Plot the Fields
+            2nd case: Plot the Fields
         -----------------------------------
-        '''
+        """
         elif np.any( np.array(comp)==np.array(fieldstrs) ):
             # check if comp matches Any strings in `fieldstrs`, defined above the if(...), ln. 409
             
