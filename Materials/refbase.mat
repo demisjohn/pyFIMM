@@ -1,0 +1,148 @@
+//-------------------------------------------------------------------------
+// Materials Parameters Database v.1.2
+//-------------------------------------------------------------------------
+//
+//        * * * * * * * * * * * * WARNING * * * * * * * * * * * * *
+//
+//        Photon Design makes NO GUARANTEE as to the accuracy of
+//        these parameters. Often data is only approximate and even
+//        the literature disagrees on what is the "true" value. You
+//        are advised to check these with your own data.
+//-------------------------------------------------------------------------
+//
+<materbase(2.21)> // file and version signature
+//
+//-------------------------------------------------------------------------
+// define "AlGaAs(x)" material 
+// x is Al content
+BEGIN AlGaAs    // material name and template
+ANAL_ALGAAS  20 0  // loads internal AlGaAs model after Adachi
+END
+//----------------------------------------------------------------------
+// define material for "GaAs" 
+// Note: user is responsible for ensuring x-parameter is zero!
+BEGIN GaAs << AlGaAs // material name and template
+END
+//----------------------------------------------------------------------
+// define "InGaAsP(x)" material 
+// refractive index is for InGaAsP at the corresponding bandgap,
+// and lattice matched to InP
+// x is As content
+BEGIN InGaAsP    // material name
+ANAL_INGAASP1 20 0  // loads internal InGaAsP model at 20 Celcius
+END
+//----------------------------------------------------------------------
+// define "InGaAsPL(x)" material 
+// refractive index is for InGaAsP at the corresponding bandgap,
+// and lattice matched to InP
+// x is bandGap wavelength
+BEGIN InGaAsPL    // material name
+ANAL_INGAASP1 20 1  // loads internal InGaAsP model at 20 Celcius
+END
+//----------------------------------------------------------------------
+// define "InP(x)"
+// Note: user is responsible for ensuring x-parameter is zero!
+BEGIN InP << InGaAsP // material name
+END
+//----------------------------------------------------------------------
+// define "InGaAlAs(x)" material at 20 Celcius
+// and lattice matched to InP
+// x is given in (Al_0.48 In_0.52 As)x.(Ga_0.47 In_0.53 As)_(1-x)
+BEGIN InGaAlAs    // material name
+ANAL_INGAALAS1 20 0  // loads internal InGaAsP model at 20 Celcius
+END
+//----------------------------------------------------------------------
+// define Silicon at 20 Celcius
+BEGIN Si      // material name
+ANAL_SILICON1 20 0  // loads internal Silicon model at 20 Celcius
+END
+//----------------------------------------------------------------------
+// define Silica,  temperature independent
+BEGIN SiO2      // material name
+ANAL_SILICA1 0 0   // loads internal Silica model 
+END
+//----------------------------------------------------------------------
+// define "SiGe(x)", valid from 0.89um to 2.48um, absorption ignored, data from http://www.ioffe.ru/SVA/NSM/Semicond/SiGe/optic.html [Humlicek 1995]
+// x-parameter defines Ge fraction: Si(1-x)Ge(x)
+BEGIN SiGe
+RIX_EXPRESSION "spline(lambda,0.885,lininterp(x,0,3.632003721,0.22,3.742807303,0.39,3.868310269,0.51,4.00125596,0.64,4.089824398,0.83,4.331061751,1,4.59937202),0.98996,lininterp(x,0,3.585207582,0.22,3.693592278,0.39,3.806814746,0.51,3.927386905,0.64,4.011117572,0.83,4.212908478,1,4.444284219),1.247,lininterp(x,0,3.52371206,0.22,3.627072915,0.39,3.72308408,0.51,3.819095244,0.64,3.905244796,0.83,4.060332597,1,4.252354925),1.6506,lininterp(x,0,3.47691592,0.22,3.572927085,0.39,3.664007443,0.51,3.745226189,0.64,3.826444935,0.83,3.966740319,1,4.134201651),2.473,lininterp(x,0,3.449843005,0.22,3.540923363,0.39,3.627072915,0.51,3.703360856,0.64,3.77974183,0.83,3.907663682,1,4.052889871))"
+LAMBDA_REF 0
+MXPARM ON 0 [0:1] "x: Ge frac"
+END
+//----------------------------------------------------------------------
+// define silicon nitride "Si3N4"
+// data from T. Bååk. "Silicon oxynitride; a material for GRIN optics", Appl. Optics 21, 1069-1072 (1982)
+// Note that the exact index of your materials may vary depending on growth conditions which can alter the Si:N ratio from 3:4.
+// Further deviations can be introduced through accidental incorporation of oxygen.
+BEGIN Si3N4
+RIX_A1L 2.8939 0.019508
+LAMBDA_REF 0
+END
+//----------------------------------------------------------------------
+// define GeO2-SiO2 glass with wavelength dependence
+// where x is the fraction of GeO2 - based on //measurements at 0.5893um - Selmeier relation from Fleming e al.
+BEGIN GeO2-SiO2 // material name
+ANAL_SIO2GEO2A // loads internal GeO2-SiO2 model
+END
+//----------------------------------------------------------------------
+// define GeO2-SiO2 glass with wavelength and temperature dependence 
+// where x is the fraction of GeO2 - based on measurements at 0.5893um - Selmeier relation from Fleming e al.
+BEGIN GeO2-SiO2T // material name
+ANAL_SIO2GEO2B // loads internal GeO2-SiO2 model
+END
+//----------------------------------------------------------------------
+// define Aluminium
+BEGIN aluminium       // material name
+ANAL_ALUMINIUM  0 0   // loads internal model for Aluminium, valid from 0.4 to 1.75um
+END
+//----------------------------------------------------------------------
+// define Gold
+BEGIN gold       // material name
+ANAL_GOLD  0 0   // loads internal model for gold, valid from 0.4 to 1.75um
+END
+//----------------------------------------------------------------------
+// define tungsten
+BEGIN tungsten     // material name
+ANAL_TUNGSTEN 0 0  // loads internal model for tungsten, valid from 0.4 to 1.75um
+END
+//----------------------------------------------------------------------
+// define nickel
+BEGIN nickel     // material name
+ANAL_NICKEL 0 0  // loads internal model for tungsten, valid from 0.4 to 2.0um
+END
+//----------------------------------------------------------------------
+// define platinum
+BEGIN platinum     // material name
+ANAL_PLATINUM 0 0  // loads internal model for tungsten, valid from 0.4 to 2.0um
+END
+//----------------------------------------------------------------------
+// define silver
+BEGIN silver     // material name
+ANAL_SILVER 0 0  // loads internal model for tungsten, valid from 0.4 to 2.0um
+END
+//----------------------------------------------------------------------
+// define BCB 3022-46 based on http://www.dow.com/cyclotene/solution/refwave.htm, valid from 0.5um to 1.75um
+BEGIN BCB3022   
+RIX_POLYL 7 1.936317 -1.829736 3.596525 -3.778709 2.203313 -0.67182 0.083564
+LAMBDA_REF 0
+END
+//----------------------------------------------------------------------
+// define BCB 4024-40 based on http://www.dow.com/cyclotene/solution/refwave.htm, valid from 0.5um to 1.6um
+BEGIN BCB4024
+RIX_POLYL 7 1.89851 -1.488008 2.673351 -2.550704 1.336336 -0.360386 0.03876
+LAMBDA_REF 0
+END
+//----------------------------------------------------------------------
+// dummy, SLAB=DEFAULT:
+// this material may be used to explicitly define the refractive index in a
+// slab list, eg SLAB(3.17),
+BEGIN SLAB // material name
+RIX_POLYX      2  0.0   1.0   // N, Cn: refractive index poly rix(x)
+MATLOSS_POLYX  1  10.0   	  // N, Cn: mat absorption poly
+MXPARM ON 1 [0:100] "x: RIX"
+END
+//----------------------------------------------------------------------
+BEGIN AIR  // material name
+RIX_POLYX      1  1.0  // N, Cn: refractive index poly rix(x)
+MATLOSS_POLYX  1  0.0  // N, Cn: mat absorption poly alpha(x)
+END
