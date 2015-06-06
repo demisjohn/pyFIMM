@@ -1,5 +1,5 @@
 __version__     =   "1.3.0"         # the version number
-__versiondate__ =   "2015-05-07"    # the date of this version
+__versiondate__ =   "2015-06-06"    # the date of this version
 
 pyfimm_version = "v"+__version__+", "+__versiondate__
 
