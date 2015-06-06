@@ -52,7 +52,8 @@ pf.set_material_database('Materials/refbase.mat')   # Use the material database 
 
 # Project Node - You must build a project node at the beginning of every script
 wg_prj = pf.Project()              # Construct a Project object, pass a project name to the constructor (optional).
-wg_prj.buildNode('Example 2 - Waveguide Device', overwrite=True)              # the buildNode() method makes FIMMWAVE build the objects.
+wg_prj.buildNode('Example 2 - Waveguide Device', overwrite=True)              
+# the buildNode() method makes FIMMWAVE build the objects.
 # Here we've also set it to overwrite any existing project of the same name.
 
 
@@ -87,12 +88,12 @@ print strip          # you can print your python objects to check them
 strip.buildNode(name='strip', parent=wg_prj)    # You can also set the parent & name while building.  
 #You must always build the node!  This sends the actual Fimmwave commands to generate this waveguide in Fimmwave.
 
-
+print "Calculating 'strip'..."
 strip.calc()            # Tell FIMMWAVE to solve for the modes!
 
 
 
-'''More sophisticated mode plotting: plot the Ex's of two selected modes & return the handles so that we can manipulate the plots with matplotlib:        '''
+# More sophisticated mode plotting: plot the Ex's of two selected modes & return the handles so that we can manipulate the plots with matplotlib:
 fig, axes, images = strip.mode( [0,2] ).plot('Ex', return_handles=True)    
 
 # add the propagation constant of each mode to the plots:
@@ -115,7 +116,7 @@ fig.savefig('Example 2 - Two Modes with Prop Const.png')
 
 
 
-''' Create a second waveguide that is identical but with 6.5um wider core: '''
+# Create a second waveguide that is identical but with 6.5um wider core:
 
 strip2 = pf.Waveguide( side(w_side) + center(w_core+6.5) + side(w_side) )
 
@@ -133,9 +134,9 @@ dev = pf.Device(  strip(10.0) + strip2(15.0)  )
 #dev.buildNode()
 dev.buildNode(name='WG Device', parent=wg_prj)  # same as the above three lines
 
-''' You should now see the Device called "WG Device" in FimmProp!
-See `help(dev)` or `dir(dev)` to see what further funcionality is available via pyFIMM.
-'''
+# You should now see the Device called "WG Device" in FimmProp!
+#   See `help(dev)` or `dir(dev)` to see what further funcionality is available via pyfimm.
+
 
 
 # View fields in the device

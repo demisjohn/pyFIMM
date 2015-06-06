@@ -127,7 +127,7 @@ dfb_left.plot('Ex', direction='left')     # Fig2: Plot Ex field for this launch,
 
 
 
-'''  Now Calculate the Cavity modes!  '''
+# ---  Now Calculate the Cavity modes!  ---
 #WLs = [1.080, 1.100, 1.120]              # for fast example
 #WLs = np.arange( 1.100-0.060, 1.100+0.060, 0.005 )     # coarse eigenmode calculation
 #WLs = np.concatenate([    np.arange(1.100-0.060, 1.100-0.007, 0.005) , np.arange(1.100-0.007, 1.100+0.007, 0.0005) , np.arange(1.100+0.007, 1.100+0.060, 0.005)    ])    # coarse away from resonance, fine at resonance
@@ -140,7 +140,7 @@ DFB = pf.Cavity(dfb_left, dfb_right)
 DFB.plot_refractive_index()     # Fig3: show the refractive index profile along Z, at (x,y)=(0,0)
 
 DFB.calc(WLs)       # Calculate the Cavity resonances etc.
-''' try `help DFB` or dir(DFB) After calling calc() - you'll see that new variables are available, such as the eigenvectors & resonance wavelengths etc.  '''
+# try `help DFB` or dir(DFB) After calling calc() - you'll see that new variables are available, such as the eigenvectors & resonance wavelengths etc.  '''
 
 #DFB.mode(0).plot()         # plot eigenvalues of 1st mode (plot defaults to 'EigV')
 DFB.mode('all').plot('EigVals')      # Fig4: plot eigenvalues of all modes
@@ -150,13 +150,12 @@ DFB.mode('all').plot('EigVals')      # Fig4: plot eigenvalues of all modes
 DFB.mode( [0,1] ).plot('Ex', 'resonance', refractive_index=True, title="DFB + 1/2-wave")     # Fig5: plot Ex field for the resonance wavelengths of specified modes.
 
 
-''' To view the resonance mode profile:
-    In FimmProp, on Either device, select 
-        View > Input Field
-    And then select the appropriate tab (Left-Hand or Right-Hand input), and
-    click 'Update' in the Preview area, to see what the superposition of modes
-    according to the EigenVector looks like.
+# To view the resonance mode profile:
+#    In FimmProp, on Either device, select 
+#        View > Input Field
+#    And then select the appropriate tab (Left-Hand or Right-Hand input), and
+#    click 'Update' in the Preview area, to see what the superposition of modes
+#    according to the EigenVector looks like.
 
-'''
 
 #pyfimm.disconnect()      # close TCP connection to application.

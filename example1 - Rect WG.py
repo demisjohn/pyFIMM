@@ -96,6 +96,7 @@ strip.buildNode()       # You must always build the node!
 #strip.buildNode(parent=wg_prj, name='strip')
 
 
+print "Calculating Modes..."
 strip.calc()           # Tell FIMMWAVE to solve for the modes!
 
 strip.mode(0).plot()        # Plot the fundamental mode with python!
