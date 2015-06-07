@@ -2,12 +2,10 @@
 
 Cavity Calculation functions
 Demis D. John, 2015, Praevium Research Inc.
-Based on Peter Beinstman's CAMFR package's `Cavity` class, and Vincent Brulis' CavityModeCalc.py example script.
+Based on Peter Beinstman's CAMFR package's `Cavity` class, 
+and Vincent Brulis' CavityModeCalc.py example script.
 
-To Do:
-------
-- Cavity.Calc
-    - `refine=True` option, to automatically minimize image(EigV) closest to zero, within some tolerance (and add the additional calc'd wavelengths to the wavelengths attribute)
+
 '''
 
 from __globals import *         # import global vars & FimmWave connection object
@@ -16,7 +14,6 @@ from __globals import *         # import global vars & FimmWave connection objec
 import numpy as np
 import math
 
-#from __pyfimm import DEBUG()        # Value is set in __pyfimm.py
 from __pyfimm import get_N, set_wavelength         # get number of calculated modes
 from __CavityMode import *          # import the CavityMode class, for `Cavity.mode(0)...`
 

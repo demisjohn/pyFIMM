@@ -1540,7 +1540,7 @@ class Device(Node):
 
 
 
-# Create new Device objects by importing from a file:
+# Create new Device objects by importing from another Project:
 def import_Device( fimmpath, project=None):
     '''Return a new Device object from within an existing Project.
     The Project should have been created in pyFIMM beforehand.  To grab a Device from a file, use `pyFIMM.import_Project()` to generate the Project from a file, and then call `import_Device()` referencing that Project.

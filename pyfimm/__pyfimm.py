@@ -452,7 +452,7 @@ def import_Project(filepath, overwrite=False):
         Path (absolute or relative?) to the FimmWave .prj file to import.
     
     overwrite : { True | False }
-            If True, will overwrite an already-open Fimmwave project with the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.
+            If True, will overwrite an already-open Fimmwave project that has the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.
     
     '''
     '''For ImportDevice: Path should be path (string) to the FimmWave node, eg. 'Dev1' if Device withthat name is in the top-level of the project, or 'Dev1/SubDev' if the target Device is underneath another Device node.'''
