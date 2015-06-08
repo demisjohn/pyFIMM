@@ -1,27 +1,28 @@
 # pyFIMM
-A Python Interface to PhotonDesign's FimmWave/FimmProp software.
-Interface based on Peter Beinstman's CAMFR simulation software.
-Originally created by Jared Bauters at the [University of California Santa Barbara](ucsb.edu) in 2011.
-Updated by Demis D. John, 2015
+A Python Interface to [PhotonDesign's FimmWave/FimmProp software](http://www.photond.com/products/fimmwave.htm).
+Interface based on [Peter Beinstman's CAMFR simulation software](http://camfr.sourceforge.net).
+Originally created by Jared Bauters at the [University of California Santa Barbara](ucsb.edu) in 2011; 
+Updated by Demis D. John, 2015.
 
-pyFIMM provides a CAMFR-like scripting interface, in Python, to construct, simulate, plot and analyze photonic devices in FimmWave.  This also enables one to do additional analysis and math on the simulations in python itself, and defined complex Python functions or loops that use FimmWave to do the heavy-lifting of solving for modes and Scattering Matrices.
 
 ## Description
-pyFIMM provides a very similar interface as the [CAMFR package by Peter Beinstman](http://camfr.sourceforge.net).
-pyFIMM provides a python interface to Photon Design's FIMMWAVE/FIMMPROP simulation tools.
+pyFIMM provides a CAMFR-like scripting interface to [Photon Design's FIMMWAVE/FIMMPROP electromagnetic/photonic simulation tools](http://www.photond.com/products/fimmwave.htm), in Python, to construct, simulate, plot and analyze photonic devices in FimmWave.  This enables one to do additional analysis and math on the simulations in python itself, and defined complex Python functions or loops that use FimmWave to do the heavy-lifting of solving for modes and Scattering Matrices.
+In addition, some additional analysis functions are included, based on examples provided by Photon Design.
 
-The interface is set up like Peter Beinstman's CAMFR (CAvity Modelling FRamework) system, in which 1-D Slices are concatenated to produce arbitrary 2-D index profiles, which can be further concatenated to produce full 3-D photonic integrated circuits.
-Photon Design's pdPythonLib is included in the module.
+The interface is set up like [Peter Beinstman's CAMFR (CAvity Modelling FRamework)](http://camfr.sourceforge.net) system, in which 1-D Slices are concatenated to produce arbitrary 2-D index profiles, which can be further concatenated to produce full 3-D photonic integrated circuits.
+Photon Design's Python library, `pdPythonLib`, is included in the module.
 
 
 ## Examples
-Example of rectangular waveguide construction syntax: We will create a rectangular waveguide of SiO2 cladding and SiN core, calculate the fundamental mode & plot it. `pyfimm` should be replaced with whatever name you imported the pyFIMM module as - for example, if you imported it like so:
+Example of rectangular waveguide construction syntax: We will create a rectangular waveguide of SiO2 cladding and SiN core, calculate the fundamental mode & plot it. 
+
+The following assumes you imported the module via `import pyfimm`, with your script residing in the same directory as the pyfimm folder.  `pyfimm` could be replaced with whatever name you imported the pyFIMM module under - for example, if you imported it like so:
     >>> import pyfimm as pf
 then replace `pyfimm` with `pf` in the following examples.
 
 First, create some Materials with some refractive index:
-    >>> SiO = pyfimm.Material(1.45)    # refractive index of SiO2
-    >>> SiN = pyfimm.Material(2.01)    # refractive index of Si3N4
+    >>> SiO = pyfimm.Material( 1.45 )    # refractive index of SiO2
+    >>> SiN = pyfimm.Material( 2.01 )    # refractive index of Si3N4
 
 Then, create some 1-D slabs, by calling those Materials with a thickness value, and adding them together from top to bottom in a Slice:
     clad = pyfimm.Slice(  SiO(15.75)  )      # Thicknesses in microns
@@ -75,14 +76,16 @@ See the Examples directory for full examples, as some details are missing in the
 
 
 ## Installation
-To use pyFIMM, simply download one of the released versions (see the "releases" section above) and extract the archive into a directory.  Since FimmWave/FimmProp require Windows, you must do so on a Windows system with FimmWave installed (or via Parallels virtual-machine).  Make sure your FimmWave executable starts up with the ability to interact with external scripts like Python (see FimmWave manual section 11.9 for setting up the scripting connection by starting Fimmwave with the '-pt 5101' command-line option, to listen on port 5101). 
+To use pyFIMM, simply download one of the released versions (see the "releases" section above) and extract the archive into a directory.  Your Python script should reside in the same directory as the "pyfimm" folder, or else you should the parent directory of the "pyfimm" folder to your Python path at the beginning of your script.    
 
-These scripts can be run like any typical Python script - the preferred method is through a Python IDE like Spyder (a matlab-like IDE).  The simplest installation of Spyder (along with all typical scientific python modules) can be accomplished via [Python(x,y)](https://code.google.com/p/pythonxy/) or [Anaconda](http://continuum.io/downloads).
+Since FimmWave/FimmProp require Windows, you must run this on a Windows system with FimmWave installed (or via a Parallels virtual-machine).  Make sure your FimmWave executable starts up with the ability to interact with external scripts like Python (see FimmWave manual section 11.9, for setting up the scripting connection by starting Fimmwave with the '-pt 5101' command-line option, to listen on port 5101). 
+
+These scripts can be run like any typical Python script (eg. on the command line `python myScript.py` or `python -i myScript.py` to interact afterwards).  The preferred method is through a Python IDE like Spyder (a matlab-like IDE).  The simplest installation of Spyder (along with all typical scientific python modules) can be accomplished via [Python(x,y)](https://code.google.com/p/pythonxy/) or [Anaconda](http://continuum.io/downloads). 
 
 ### Requires
 * FimmWave by Photon Design, setup with TCP port number access (see FimmWave manual section on Python usage).
 * Python 2.7 (may work on other versions, untested)
 * numpy
 * matplotlib
-(both of the above are included as part of scientific python environments Python(x,y) or Anaconda)
+(both of the above are included as part of scientific python environments [Python(x,y)](https://code.google.com/p/pythonxy/) and [Anaconda](http://continuum.io/downloads))
 
