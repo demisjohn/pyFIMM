@@ -36,9 +36,9 @@ or even easier, while building your script try:
 >>> help( CurrentAperture.mode(0) )     # shows functions that can be performed on modes, which are actually Mode objects.
 >>> help( CurrentAperture.mode(0).plot ) # help on the mode plotting function
 
-For more verbose output, while programming the libraries for example, set the variable
-    DEBUG = True
-at the top of the file __pyfimm.py.  This will enable various levels of extra output, that aids in finding out where a calculation or bug is occurring.
+For more verbose output, while programming the libraries for example, set the pyfimm DEBUG parameter like so:
+    pyfimm.set_DEBUG()
+at the point you want debugging output turned on.  This will enable various levels of extra output, that aids in finding out where a calculation or bug is occurring.  `unset_DEBUG()` can be used to turn off this extra verbosity.
 '''
 
 
@@ -59,7 +59,7 @@ pf.set_N_1d(100)                           # Num. of 1D modes found in each slic
 
 pf.set_N(3)                                # Num. of modes to solve for
 pf.set_Nm(1)        # theta mode order.  Can accept start/stop values as list, eg. [1,5]
-pf.set_Np(2)        # polarization mode order, aslo can accept start/stop values as list.
+pf.set_Np(2)        # polarization mode order, also can accept start/stop values as list.
 
 dfbproj = pf.Project('Example 3 - DFB Cavity', buildNode=True, overwrite=True)    # Create Proj & build the node in one line.  `overwrite` will overwrite an existing project with the same name.         
 
