@@ -1,26 +1,26 @@
 '''pyFIMM Documentation:
 pyFIMM provides a python interface to Photon Design's FIMMWAVE/FIMMPROP simulation tools.
 
-The interface is set up like Peter Beinstman's CAMFR (CAvity Modelling FRamework) system, in which 1-D Slices are concatenated to produce arbitrary 2-D index profiles, which can be further concatenated to produce full 3-D photonic integrated circuits.
+The interface is set up like Peter Beinstman's CAMFR (CAvity Modelling FRamework) system, in which 1-D Slices are concatenated to produce arbitrary 2-D index profiles (waveguides), which can be further concatenated to produce full 3-D photonic integrated circuits.
 Photon Design's pdPythonLib is included in the module.
 
 Originally created by Jared Bauters at the University of California Santa Barbara in 2011.
-Updated by Demis D. John, 2015 at Praevium Research Inc.
+Updated by Demis D. John, 2015
 
 
 Examples
 --------
-Example of rectangular waveguide construction syntax: We will create a rectangular waveguide of SiO2 cladding and SiN core, calculate the fundamental mode & plot it. `pyFIMM` should be replaced with whatever name you imported the pyFIMM module as - for example, is you imported is like so:
-    >>> import pyFIMM as pf
-then replace `pyFIMM` with `pf` in the following examples.
+Example of rectangular waveguide construction syntax: We will create a rectangular waveguide of SiO2 cladding and SiN core, calculate the fundamental mode & plot it. `pyfimm` should be replaced with whatever name you imported the pyFIMM module as - for example, if you imported it like so:
+    >>> import pyfimm as pf
+then replace `pyfimm` with `pf` in the following examples.
 
 First, create some Materials with some refractive index:
-    >>> SiO = pyFIMM.Material(1.45)    # refractive index of SiO2
-    >>> SiN = pyFIMM.Material(2.01)    # refractive index of Si3N4
+    >>> SiO = pyfimm.Material(1.45)    # refractive index of SiO2
+    >>> SiN = pyfimm.Material(2.01)    # refractive index of Si3N4
 
 Then, create some 1-D slabs, by calling those Materials with a thickness value, and adding them together from top to bottom in a Slice:
-    clad = pyFIMM.Slice(  SiO(15.75)  )      # Thicknesses in microns
-    core = pyFIMM.Slice(  SiO(10.0) + SiN(0.75) + SiO(5.0)  )
+    clad = pyfimm.Slice(  SiO(15.75)  )      # Thicknesses in microns
+    core = pyfimm.Slice(  SiO(10.0) + SiN(2.5) + SiO(5.0)  )
 This created an imaginary structure from bottom-to-top, for example `core` looks like:
 
             top         
@@ -29,7 +29,7 @@ This created an imaginary structure from bottom-to-top, for example `core` looks
         5.0 um thick
     --------------------
             SiN
-       0.75 um thick
+       2.50 um thick
     --------------------
             SiO
        10.0 um thick
@@ -37,7 +37,7 @@ This created an imaginary structure from bottom-to-top, for example `core` looks
            bottom
 
 Then make a 2-D structure by calling these Slices with a width value, and adding them together from left to right in a Waveguide:
-    >>> WG = pyFIMM.Waveguide(  clad(3.0) + core(1.0) + clad(4.0)  )   # Widths in microns
+    >>> WG = pyfimm.Waveguide(  clad(3.0) + core(1.0) + clad(4.0)  )   # Widths in microns
 Which creates this imaginary 2-D Waveguide structure from left-to-right:
                                 top         
     ---------------------------------------------------------
@@ -62,7 +62,9 @@ You can then calculate the modes as so:
 
 And inspect the modes like so:
     >>> WG.mode(0).plot()   # plots the fundamental mode.
-
+Or extract field values like so:
+	>>> Mode1_Ex = WG.mode(1).get_field('Ex')   # Saves x-direction E-field for 2nd mode
+	
 See the Examples directory for full examples, as some details are missing in these.
 
 

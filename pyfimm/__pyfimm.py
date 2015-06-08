@@ -112,10 +112,10 @@ def checkNodeName( name, level=0 ):
         name += dt.datetime.now().strftime('.%f')   # add current microsecond to the name
         print "\tNode name changed to: ", name
     else:
-        if DEBUG(): print "Node name is unique."
+        if DEBUG(): print "Node name `%s` is unique." % name
         pass
     return name
-    #end if(name already exists) aka. len(sameprojname) )
+#end checknodename()
 
 def set_working_directory(wdir):
     '''Set FimmWave working directory. Usually set to same dir as your Python script in order to find FimmWave output files.'''
