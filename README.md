@@ -17,16 +17,21 @@ Photon Design's Python library, `pdPythonLib`, is included in the module.
 Example of rectangular waveguide construction syntax: We will create a rectangular waveguide of SiO2 cladding and SiN core, calculate the fundamental mode & plot it. 
 
 The following assumes you imported the module via `import pyfimm`, with your script residing in the same directory as the pyfimm folder.  `pyfimm` could be replaced with whatever name you imported the pyFIMM module under - for example, if you imported it like so:
+
     >>> import pyfimm as pf
+    
 then replace `pyfimm` with `pf` in the following examples.
 
 First, create some Materials with some refractive index:
+
     >>> SiO = pyfimm.Material( 1.45 )    # refractive index of SiO2
     >>> SiN = pyfimm.Material( 2.01 )    # refractive index of Si3N4
 
 Then, create some 1-D slabs, by calling those Materials with a thickness value, and adding them together from top to bottom in a Slice:
+
     clad = pyfimm.Slice(  SiO(15.75)  )      # Thicknesses in microns
     core = pyfimm.Slice(  SiO(10.0) + SiN(2.5) + SiO(5.0)  )
+    
 This created an imaginary structure from bottom-to-top, for example `core` looks like:
 
             top         
@@ -43,8 +48,11 @@ This created an imaginary structure from bottom-to-top, for example `core` looks
            bottom
 
 Then make a 2-D structure by calling these Slices with a width value, and adding them together from left to right in a Waveguide:
+
     >>> WG = pyfimm.Waveguide(  clad(3.0) + core(1.0) + clad(4.0)  )   # Widths in microns
+    
 Which creates this imaginary 2-D Waveguide structure from left-to-right:
+
                                 top         
     ---------------------------------------------------------
     |<----- 3.0um------>|<-----1.0um------>|<---- 4.0um---->|
@@ -60,15 +68,21 @@ Which creates this imaginary 2-D Waveguide structure from left-to-right:
                                bottom
     
 Then tell FimmWave to actually build these structures:
+
     >>> WG.buildNode(name='Waveguide', parent=wg_prj)     # Build the Fimmwave Node
+    
 Now the RWG waveguide node is available in the Fimmwave GUI.  (Note you should have already made a Project node in fimmwave, which is referenced as the `parent` here.  See Examples for full code.)
 
 You can then calculate the modes as so:
+
     >>> WG.calc()
 
 And inspect the modes like so:
+
     >>> WG.mode(0).plot()   # plots the fundamental mode.
+    
 Or extract field values like so:
+
 	>>> Mode1_Ex = WG.mode(1).get_field('Ex')   # Saves x-direction E-field for 2nd mode
 
 See the Examples directory for full examples, as some details are missing in these.
