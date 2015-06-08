@@ -90,11 +90,11 @@ See the Examples directory for full examples, as some details are missing in the
 
 
 ## Installation
-To use pyFIMM, simply download one of the released versions (see the "releases" section above) and extract the archive into a directory.  Your Python script should reside in the same directory as the "pyfimm" folder, or else you should the parent directory of the "pyfimm" folder to your Python path at the beginning of your script.    
+To use pyFIMM, simply download one of the released versions (see the "releases" or "tags" section of this page) and extract the archive into a directory.  Your Python script should reside in the same directory as the *pyfimm* folder, or else you should the parent directory of the *pyfimm* folder to your Python path at the beginning of your script.    
 
-Since FimmWave/FimmProp require Windows, you must run this on a Windows system with FimmWave installed (or via a Parallels virtual-machine).  Make sure your FimmWave executable starts up with the ability to interact with external scripts like Python (see FimmWave manual section 11.9, for setting up the scripting connection by starting Fimmwave with the '-pt 5101' command-line option, to listen on port 5101). 
+Since FimmWave & FimmProp require Windows, you must run this on a Windows system with FimmWave installed (or via a Parallels virtual-machine).  Make sure your FimmWave executable starts up with the ability to interact with external scripts like Python (see FimmWave manual section 11.9, for setting up the scripting connection by starting Fimmwave with the '-pt 5101' command-line option, to listen on port 5101). 
 
-These scripts can be run like any typical Python script (eg. on the command line `python myScript.py` or `python -i myScript.py` to interact afterwards).  The preferred method is through a Python IDE like Spyder (a matlab-like IDE).  The simplest installation of Spyder (along with all typical scientific python modules) can be accomplished via [Python(x,y)](https://code.google.com/p/pythonxy/) or [Anaconda](http://continuum.io/downloads). 
+These pyfimm scripts can be run like any typical Python script (eg. on the command line via `python myScript.py` or `python -i myScript.py` to interact afterwards).  The preferred method is through a Python IDE like Spyder (a matlab-like IDE).  The simplest installation of Spyder (along with all typical scientific python modules) can be accomplished via [Python(x,y)](https://code.google.com/p/pythonxy/) (Win) or [Anaconda](http://continuum.io/downloads) (Mac,Win,Linux). 
 
 ### Requires
 * FimmWave by Photon Design, setup with TCP port number access (see FimmWave manual section on Python usage).
