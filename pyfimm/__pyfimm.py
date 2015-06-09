@@ -39,7 +39,7 @@ from __globals import *         # import global vars & FimmWave connection objec
 import numpy as np
 import datetime as dt   # for date/time strings
 import os.path      # for path manipulation
-
+import random       # random number generators
 
 
 
@@ -85,13 +85,17 @@ def Exec(string, vars=[]):
         if out[-2:] == '\n\x00': out = out[:-2]     # strip off FimmWave EOL/EOF chars.
     return out
 
-def striptxt(string):
+def striptxt(FimmString):
     '''Remove the EOL characters from FimmWave output strings.'''
-    if string[-2:] == '\n\x00': out = string[:-2]     # strip off FimmWave EOL/EOF chars.
-    return string
+    junkchars = '\n\x00'    # characters to remove
+    if FimmString.endswith(junkchars): out = FimmString.strip( junkchars )     # strip off FimmWave EOL/EOF chars.
+    return out
 
-def striparray(array):
-    '''Remove EOL & 'None' elements of a returned array.'''
+def striparray(FimmArray):
+    '''Remove EOL & 'None' elements of a returned list or array.'''
+    if  isinstance( FimmArray,  list ):
+        if  FimmArray[0]  is None:  out = FimmArray[1:]     # omit 1st 'None' element
+    
 
 def checkNodeName( name, level=0, warn=True ):
     ''' See if the project name exists in FimmWave, and return a modified project name (with ms time-stamp) if it exists.
@@ -119,13 +123,46 @@ def checkNodeName( name, level=0, warn=True ):
         '''change the name of this new node'''
         if warn: print "WARNING: Node name `" + name + "` already exists;"
         sameprojnum = sameprojnum[0]+1
-        name += dt.datetime.now().strftime('.%f')   # add current microsecond to the name
+        name += "." +str( get_next_refnum() )       #dt.datetime.now().strftime('.%f')   # add current microsecond to the name
         print "\tNode name changed to: ", name
     else:
         if DEBUG(): print "Node name `%s` is unique." % name
         pass
     return name, sameprojnum
 #end checknodename()
+
+
+def get_next_refnum():
+    '''Returns a 6-digit random number to use for naming new FimmWave references/nodes.  Will ensure that a duplicate is never returned.  All used values are stored in the pyFIMM global variable `global_refnums`.'''
+    global global_refnums
+    try:
+        global_refnums
+    except NameError:
+        global_refnums = []     # default value if unset
+    
+    cont, i =  1,1
+    while cont == 1:
+        ''' If random number `r` is already in the global list, make a new one '''
+        r = random.randint(100000,999999)   # 6-digit random number
+        if len( np.where(  np.array(global_refnums) == np.array([r]) )[0]  ) == 0:
+            ''' If random number `r` is not in the global list, continue '''
+            cont = 0    # stop the loop
+        
+        # make sure the loop doesn't run away, in case the used has made 1 million objects!
+        i = i+1
+        if i > 1000:
+            cont = 0
+            raise UserWarning("Could not generate a random number after 1000 iterations! Aborting...")
+    # end while(cont)
+    
+    global_refnums.append(  r  )
+    return global_refnums[-1]   # return last random number
+
+
+
+####################################
+#   Fimmwave Global Parameters  ####
+####################################
 
 def set_working_directory(wdir):
     '''Set FimmWave working directory. Usually set to same dir as your Python script in order to find FimmWave output files.'''
@@ -247,6 +284,7 @@ class Node(object):
         overwrite = kwargs.pop('overwrite', False)  # to overwrite existing project of same name
         warn = kwargs.pop('warn', True)     # display warning is overwriting?
         
+        """
         ## Check if top-level node name conflicts with one already in use:
         #AppSubnodes = fimm.Exec("app.subnodes")        # The pdPythonLib didn't properly handle the case where there is only one list entry to return.  Although we could now use this function, instead we manually get each subnode's name:
         N_nodes = int(  fimm.Exec("app.numsubnodes")  )
@@ -268,12 +306,14 @@ class Node(object):
             else: 
                 '''change the name of this new node'''
                 if warn: print "WARNING: Node name `" + self.name + "` already exists;"
-                self.name += dt.datetime.now().strftime('.%f')   # add current microsecond to the name
+                self.name += "." +str( get_next_refnum() )  #dt.datetime.now().strftime('.%f')   # add current microsecond to the name
                 print "\tNode name changed to: ", self.name
             #end if(overwrite)
         else:
             if DEBUG(): print "Node name is unique."
         #end if(self.name already exists aka. len(sameprojname)
+        """
+        
         
         if kwargs:
             '''If there are unused key-word arguments'''
@@ -306,7 +346,7 @@ class Node(object):
             else: 
                 '''change the name of this new node'''
                 if warn: print "WARNING: Node name `" + self.name + "` already exists;"
-                self.name += dt.datetime.now().strftime('.%f')   # add current microsecond to the name
+                self.name += "." +str( get_next_refnum() )      #dt.datetime.now().strftime('.%f')   # add current microsecond to the name
                 print "\tNode name changed to: ", self.name
             #end if(overwrite)
         else:
@@ -398,7 +438,7 @@ class Project(Node):
             else: 
                 '''change the name of this new node'''
                 print self.name + ".buildNode(): WARNING: Node name `" + self.name + "` already exists;"
-                self.name += dt.datetime.now().strftime('.%f')   # add current microsecond to the name
+                self.name += "." +str( get_next_refnum() )      #dt.datetime.now().strftime('.%f')   # add current microsecond to the name
                 print "\tNode name changed to: ", self.name
             #end if(overwrite)
         else:
@@ -461,8 +501,14 @@ def import_Project(filepath, name=None, overwrite=False, warn=True):
     filepath : string
         Path (absolute or relative?) to the FimmWave .prj file to import.
     
-    overwrite : { True | False }
-            If True, will overwrite an already-open Fimmwave project that has the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.
+    name : string, optional
+        Optionally provide a name for the new Project node in Fimmwave.  If omitted, the Project name save in the file will be used.
+    
+    overwrite : { True | False }, optional
+        If True, will overwrite an already-open Fimmwave project that has the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.  False by default.
+    
+    warn : { True | False }, optional
+        Print or suppress warnings when nodes will be overwritten etc.  True by default.
     
     '''
     '''For ImportDevice: Path should be path (string) to the FimmWave node, eg. 'Dev1' if Device withthat name is in the top-level of the project, or 'Dev1/SubDev' if the target Device is underneath another Device node.'''
@@ -478,19 +524,19 @@ def import_Project(filepath, name=None, overwrite=False, warn=True):
         raise IOError(ErrStr)
     
     
-    #Open the project file, and 
+    # Open the project file, and 
     #   make sure the project name isn't already in the FimmWave node list (will pop a FimmWave error)
     if name is None:
-        # Get name form the Project we're opening
+        # Get name from the Project we're opening
         prjf = open(filepath)
         prjtxt = prjf.read()
         prjf.close()
     
         import re   # regex matching
         ''' In the file: 
-        begin <fimmwave_prj(1.0)> "MZI Encoder v1"
+        begin <fimmwave_prj(1.0)> "My Project Name"
         '''
-        prjname_pattern = re.compile(     r'.*begin \<fimmwave_prj\(1\.0\)\> "(.*)".*'    )
+        prjname_pattern = re.compile(     r'.*begin \<fimmwave_prj\(\d\.\d\)\> "(.*)".*'    )
         # perform the search:
         m = prjname_pattern.search(  prjtxt  )      # use regex pattern to extract project name
         # m will contain any 'groups' () defined in the RegEx pattern.
@@ -525,7 +571,8 @@ def import_Project(filepath, name=None, overwrite=False, warn=True):
     prj.num = node_num
     prj.built = True
     prj.savepath = savepath
-    prj.name = fimm.Exec(  "app.subnodes[%i].nodename " % prj.num  )
+    prj.name = striptxt(  fimm.Exec(  "app.subnodes[%i].nodename " % prj.num  )  )
+    
     prj.origin = 'fimm'
     
     

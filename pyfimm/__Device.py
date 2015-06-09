@@ -335,7 +335,7 @@ class Device(Node):
             sidestr = 'rhs'
             self.input_field_right = amplitude_list
         else:
-            ErrStr = "set_input_field(): Unsupported side passed: `" + str(side) + "`.  \n\tPlease use 'Left' or 'Right', or see `help(pyfimm.Device.set_input_field)`."
+            ErrStr = "Device " + self.name + ".set_input_field(): Unsupported side passed: `" + str(side) + "`.  \n\tPlease use 'Left' or 'Right', or see `help(pyfimm.Device.set_input_field)`."
             if DEBUG(): print "side.lower() = ", side.lower()
             raise ValueError(ErrStr)
 
@@ -346,26 +346,26 @@ class Device(Node):
         
         fpString = ''
         
+        if amplitude_list == None:
+            # if `None` was passed, Turn off input on this side by setting input = Mode 0
+            amplitude_list = int(0)
+        
         if isinstance(amplitude_list, int):
-            '''an integer was passed, so set to mode component'''
-            fpString += self.nodestring + "." + sidestr + "input.inputtype=1" + "\n"
+            # an integer was passed, so set to mode component
+            fpString += self.nodestring + "." + sidestr + "input.inputtype=1" + "\n"    # mode number input
             fpString += self.nodestring + "." + sidestr + "input.cpt=" + str(amplitude_list - 1) + "\n"
             if sidestr == 'lhs': 
                 self.input_field_left = amplitude_list - 1
             elif sidestr == 'rhs':
                 self.input_field_right = amplitude_list - 1
         else:
-            if amplitude_list == None:
-                '''if `None` was passed, Turn off input on this side'''
-                amplitude_list = np.zeros( pyFIMM.get_N() )
-            
-            '''assume an array-like was passed, so set the input as a vector'''
+            # assume an array-like was passed, so set the input as a vector
+
             ampString = str(amplitude_list[0].real)+","+str(amplitude_list[0].imag)
-        
             for ii in range( 1, get_N() ):
                 ampString += ","+str(amplitude_list[ii].real)+","+str(amplitude_list[ii].imag)
             
-            fpString = self.nodestring + "." + sidestr + "input.inputtype=2" + "\n"
+            fpString = self.nodestring + "." + sidestr + "input.inputtype=2" + "\n"     # vector input
             fpString += self.nodestring + "." + sidestr + "input.setvec(" + ampString + ")   \n"
         #end isinstance(amplitude_list)
         
@@ -385,7 +385,12 @@ class Device(Node):
     
     def get_input_field(self):
         '''Return the input field vector. 
-        Returns a list, like so [<Left-hand field> , <Right-hand field>].  If <Left-hand field> is itself a list, then the input type is a vector, while if an integer is returned, then the input type is just a mode number.  If a side has no input field, it will contain only the value `None`.
+        Returns a list, like so [<Left-hand field> , <Right-hand field>].  
+        If a side has no input field, it will contain only the value `None`.
+        If <Left-hand field> is itself a list, then the input type is a vector, while if an integer is returned, then the input type is just a mode number.  You can check for whether the returned type is a vector as so
+            >>> input_field = Dev1.get_input_field()[0]
+            >>> left_field = Dev1.get_input_field()[0]  # get the left-
+            >>> isinstance(  left-field ,  int  )      # returns True
         
         Examples
         --------
@@ -394,6 +399,7 @@ class Device(Node):
         >>> [ [1,0,0], None ]
         # Which indicates that there is no Right-hand input, and the left-hand input launches only the 1st mode.
         '''
+        
         
         """
         # Obsolete - FimmProp can't return the current Vector input, so just using internal values
