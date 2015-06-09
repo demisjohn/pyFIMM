@@ -93,9 +93,18 @@ def striptxt(string):
 def striparray(array):
     '''Remove EOL & 'None' elements of a returned array.'''
 
-def checkNodeName( name, level=0 ):
+def checkNodeName( name, level=0, warn=True ):
     ''' See if the project name exists in FimmWave, and return a modified project name (with ms time-stamp) if it exists.
-    level=0 means top-level (project names only).  This is currently the only supported mode.  Eventually could support checking names of subnodes.'''
+    level=0 means top-level (project names only).  This is currently the only supported mode.  Eventually could support checking names of subnodes.
+    
+    Returns
+    -------
+    nodename : str
+        Name of the offending identically-named node.
+    
+    nodenum : int
+        Node Number of the offending identically-named node.
+    '''
     if level==0: nodestring = "app."    # top-level
     N_nodes = int(  fimm.Exec(nodestring+"numsubnodes")  )
     SNnames = []    #subnode names
@@ -103,18 +112,19 @@ def checkNodeName( name, level=0 ):
         SNnames.append(  fimm.Exec(nodestring+r"subnodes["+str(i+1)+"].nodename").strip()[:-2]  )   
         # trim whitespace via string's strip(), strip the two EOL chars '\n\x00' from end via indexing [:-2]
     # check if node name is in the node list:
-    sameprojname = np.where( np.array(SNnames) == np.array([name]) )[0]
+    sameprojnum = np.where( np.array(SNnames) == np.array([name]) )[0]
     #if DEBUG(): print "Node._checkNodeName(): [sameprojname] = ", sameprojname, "\nSNnames= ", SNnames
-    if len( sameprojname  ) > 0:
+    if len( sameprojnum  ) > 0:
         '''if identically-named node was found'''
         '''change the name of this new node'''
         if warn: print "WARNING: Node name `" + name + "` already exists;"
+        sameprojnum = sameprojnum[0]+1
         name += dt.datetime.now().strftime('.%f')   # add current microsecond to the name
         print "\tNode name changed to: ", name
     else:
         if DEBUG(): print "Node name `%s` is unique." % name
         pass
-    return name
+    return name, sameprojnum
 #end checknodename()
 
 def set_working_directory(wdir):
@@ -445,7 +455,7 @@ class Project(Node):
 #end class(Project)
 
 
-def import_Project(filepath, overwrite=False):
+def import_Project(filepath, name=None, overwrite=False, warn=True):
     '''Import a Project from a file.  
     
     filepath : string
@@ -468,32 +478,37 @@ def import_Project(filepath, overwrite=False):
         raise IOError(ErrStr)
     
     
-    '''Open the project file, and make sure the project name isn't already in the FimmWave node list (will pop a FimmWave error)'''
-    prjf = open(filepath)
-    prjtxt = prjf.read()
-    close(prjf)
+    #Open the project file, and 
+    #   make sure the project name isn't already in the FimmWave node list (will pop a FimmWave error)
+    if name is None:
+        # Get name form the Project we're opening
+        prjf = open(filepath)
+        prjtxt = prjf.read()
+        prjf.close()
     
-    import re   # regex matching
-    ''' In the file: 
-    begin <fimmwave_prj(1.0)> "MZI Encoder v1"
-    '''
-    prjname_pattern = re.compile(     r'.*begin \<fimmwave_prj\(1\.0\)\> "(.*)".*'    )
-    # perform the search:
-    m = prjname_pattern.search(  prjtxt  )      # use regex pattern to extract project name
-    # m will contain any 'groups' () defined in the RegEx pattern.
-    if m:
-        prjname = m.group(1)	# grab 1st group from RegEx
-        if DEBUG(): print 'Project Name found:', m.groups(), ' --> ', prjname
-    #groups() prints all captured groups
+        import re   # regex matching
+        ''' In the file: 
+        begin <fimmwave_prj(1.0)> "MZI Encoder v1"
+        '''
+        prjname_pattern = re.compile(     r'.*begin \<fimmwave_prj\(1\.0\)\> "(.*)".*'    )
+        # perform the search:
+        m = prjname_pattern.search(  prjtxt  )      # use regex pattern to extract project name
+        # m will contain any 'groups' () defined in the RegEx pattern.
+        if m:
+            prjname = m.group(1)	# grab 1st group from RegEx
+            if DEBUG(): print 'Project Name found:', m.groups(), ' --> ', prjname
+        #groups() prints all captured groups
+    else:
+        prjname = name
     
-    newprjname = checkNodeName( prjname )
+    newprjname, newnodenum = checkNodeName( prjname )  # get modified nodename & nodenum of same-named Proj.
+    nodestring = "app."
     if newprjname != prjname:
         '''Project with same name exists'''
         if overwrite:
             '''delete the offending identically-named node'''
-            if warn: print "Overwriting existing Node #" + str(sameprojname) + ", `" + SNnames[sameprojname] + "`."
-            sameprojname = sameprojname[0]+1
-            fimm.Exec(nodestring+"subnodes["+str(sameprojname)+"].delete")
+            if warn: print "Overwriting existing Node #" + str(newnodenum) + ", '%s'." % prjname
+            fimm.Exec(nodestring+"subnodes["+str(newnodenum)+"].delete")
             newprjname = prjname    #use orig name
     #end if(project already exists)
     
@@ -503,7 +518,7 @@ def import_Project(filepath, overwrite=False):
     N_nodes = fimm.Exec("app.numsubnodes")
     node_num = int(N_nodes)+1
     '''app.openproject: FUNCTION - ( filename[, nodename] ): open the specified project with the specified node name'''
-    fimm.Exec("app.openproject(" + str(filepath) + ', "" )'  )   # open the .prj file
+    fimm.Exec("app.openproject(" + str(filepath) + ', "'+ newprjname + '" )'  )   # open the .prj file
     
     prj = Project()     # new Project obj
     prj.type = 'project'  # unused!
