@@ -97,9 +97,21 @@ def striparray(FimmArray):
         if  FimmArray[0]  is None:  out = FimmArray[1:]     # omit 1st 'None' element
     
 
-def checkNodeName( name, level=0, warn=True ):
+def checkNodeName( name, nodestring="app.", warn=True ):
     ''' See if the project name exists in FimmWave, and return a modified project name (with ms time-stamp) if it exists.
     level=0 means top-level (project names only).  This is currently the only supported mode.  Eventually could support checking names of subnodes.
+    
+    Parameters
+    ----------
+    name : string
+        The name to check.  `name` will be checked against all the node-names at the specified level.
+    
+    nodestring : string, optional
+        Specifies what level at which to check for existing node name.  Defaults to "app.", which means you're checking top-level Project names.  If, instead, `nodestring = app.subnodes[1]` then you're checking node names within the 1st project in FimmWave.
+    
+    warn : { True | False }, optional
+        Print a warning if the node name exists?  Defaults to True.
+    
     
     Returns
     -------
@@ -109,7 +121,6 @@ def checkNodeName( name, level=0, warn=True ):
     nodenum : int
         Node Number of the offending identically-named node.
     '''
-    if level==0: nodestring = "app."    # top-level
     N_nodes = int(  fimm.Exec(nodestring+"numsubnodes")  )
     SNnames = []    #subnode names
     for i in range(N_nodes):
@@ -408,6 +419,7 @@ class Project(Node):
         ----------
         name : string, optional
             Provide a name for this waveguide node.
+        
         overwrite : { True | False }
             If True, will overwrite an already-open project with the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.
         '''
@@ -415,6 +427,7 @@ class Project(Node):
         if DEBUG(): print "Project.buildNode():"
         if name: self.name = name
         self.type = 'project'   # unused!
+        
         
         ## Check if top-level (project) node name conflicts with one already in use:
         #AppSubnodes = fimm.Exec("app.subnodes")        # The pdPythonLib didn't properly handle the case where there is only one list entry to return.  Although we could now use this function, instead we manually get each subnode's name:
