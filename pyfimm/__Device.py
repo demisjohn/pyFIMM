@@ -1686,4 +1686,37 @@ def import_Device( fimmpath, project=None):
     dev = Device()      # new pyFIMM Device object
     dev.origin = 'fimm'   # Device was constructed in FimmProp, not pyFIMM
 
+    
+    
+    '''
+    Var wg=app.subnodes[1].subnodes[3].cdev.getwg(0)
+    could not find item "Var wg"
+    
+app.subnodes[1].subnodes[3].cdev.getwg(0)
+app.subnodes[1].subnodes[3].cdev.eltlist
+    
+         eltlist[1]     
+         eltlist[2]     
+         eltlist[3]     
+    
+app.subnodes[1].subnodes[3].cdev.eltlist[3].length
+    15
+    
+app.subnodes[1].subnodes[3].cdev.eltlist[2].length
+    could not find item "app.subnodes[1].subnodes[3].cdev.eltlist[2].length"
+    
+app.subnodes[1].subnodes[3].cdev.eltlist[1].length
+    10
+    
+>>> pf.Exec("app.subnodes[1].subnodes[3].cdev.eltlist")
+[None, 'eltlist[1]', 'eltlist[2]', 'eltlist[3]']
 
+app.subnodes[1].subnodes[3].cdev.eltlist[1].objtype
+    FPWGsection
+    
+app.subnodes[1].subnodes[3].cdev.eltlist[2].objtype
+    FPsimpleJoint
+
+>>> pf.Exec("app.subnodes[1].subnodes[3].cdev.eltlist[2].objtype")
+'FPsimpleJoint'
+    '''
