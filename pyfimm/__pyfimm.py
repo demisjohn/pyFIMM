@@ -97,9 +97,8 @@ def striparray(FimmArray):
         if  FimmArray[0]  is None:  out = FimmArray[1:]     # omit 1st 'None' element
     
 
-def checkNodeName( name, nodestring="app.", warn=True ):
-    ''' See if the project name exists in FimmWave, and return a modified project name (with ms time-stamp) if it exists.
-    level=0 means top-level (project names only).  This is currently the only supported mode.  Eventually could support checking names of subnodes.
+def check_node_name( name, nodestring="app.", warn=True ):
+    ''' See if the node name already exists in FimmWave, and return a modified project name (with random numbers appended) if it exists.
     
     Parameters
     ----------
@@ -116,10 +115,11 @@ def checkNodeName( name, nodestring="app.", warn=True ):
     Returns
     -------
     nodename : str
-        Name of the offending identically-named node.
+        New name for the node.  If `name` existed in the specified node list, `nodename` will have random digits appended to the name.  Otherwise, it will be left untouched.  if `nodename != name` then `name` already exists in the node list.
     
     nodenum : int
-        Node Number of the offending identically-named node.
+        Node Number of the offending identically-named node.  
+        Thus the FimmWave command `nodestring + ".subnodes[ nodenum ].delete` will delete the existing node with the same name.
     '''
     N_nodes = int(  fimm.Exec(nodestring+"numsubnodes")  )
     SNnames = []    #subnode names
@@ -560,8 +560,9 @@ def import_Project(filepath, name=None, overwrite=False, warn=True):
     else:
         prjname = name
     
-    newprjname, newnodenum = checkNodeName( prjname )  # get modified nodename & nodenum of same-named Proj.
     nodestring = "app."
+    newprjname, newnodenum = check_node_name( prjname, nodestring )  # get modified nodename & nodenum of same-named Proj.
+    
     if newprjname != prjname:
         '''Project with same name exists'''
         if overwrite:

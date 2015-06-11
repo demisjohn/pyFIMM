@@ -82,7 +82,7 @@ class Mode:
     deactivate()
         Set fimmwave state of this mode to 0    
     
-    field(component, IncludePML=True)
+    field(component, include_pml=True)
         Get the value of a particular electromagnetic field from this Mode.
         Returns the field component of the whole mode profile.
         See help on this function for parameters.
@@ -166,29 +166,29 @@ class Mode:
         if self.obj.name: string += "Waveguide Name: '"+self.obj.name+"'\n"  
         for n, num in enumerate(self.list_num):
             string += "Mode (%i):\n"%num
-            string += "\tModal Index (n_eff) = %0.5f \n"%(self.get_n_eff(aslist=True)[n].real)
-            string += "\tGroup Index (n_g) = %0.5f \n"%(self.get_n_g(aslist=True)[n].real)
-            string += "\tPercent of the mode in TE direction = %0.1f %% \n"%(self.get_percent_TE(aslist=True)[n])
-            string += "\tConfinement Factor (overlap with cfseg) = %0.1f \n"%(self.get_confinement(aslist=True)[n])
-            string += "\tEffective Area = %0.3f  um^2 \n"%(self.get_effective_area(aslist=True)[n])
-            string += "\tAttenuation = %0.3f  1/cm \n"%(self.get_attenuation(aslist=True)[n])
-            string += "\tPropagation Constant = %0.3f + j*%0.3f  1/um \n"%(self.get_kz(aslist=True)[n].real, self.get_kz(aslist=True)[n].imag)
+            string += "\tModal Index (n_eff) = %0.5f \n"%(self.get_n_eff(as_list=True)[n].real)
+            string += "\tGroup Index (n_g) = %0.5f \n"%(self.get_n_g(as_list=True)[n].real)
+            string += "\tPercent of the mode in TE direction = %0.1f %% \n"%(self.get_percent_TE(as_list=True)[n])
+            string += "\tConfinement Factor (overlap with cfseg) = %0.1f \n"%(self.get_confinement(as_list=True)[n])
+            string += "\tEffective Area = %0.3f  um^2 \n"%(self.get_effective_area(as_list=True)[n])
+            string += "\tAttenuation = %0.3f  1/cm \n"%(self.get_attenuation(as_list=True)[n])
+            string += "\tPropagation Constant = %0.3f + j*%0.3f  1/um \n"%(self.get_kz(as_list=True)[n].real, self.get_kz(as_list=True)[n].imag)
         
         return string
     
     
-    def get_n_eff(self, aslist=False):
+    def get_n_eff(self, as_list=False):
         '''Return the Modal index.
         
         Parameters
         ----------
-        aslist : boolean, optional
-            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `aslist=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.'''
+        as_list : boolean, optional
+            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.'''
         out=[]
         for num in self.list_num:
             out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].neff")  )
         
-        if len(self.list_num) == 1 and aslist==False:
+        if len(self.list_num) == 1 and as_list==False:
             out = out[0]
         return out
     #end n_eff()
@@ -200,20 +200,20 @@ class Mode:
         return self.get_n_eff()
 
 
-    def get_n_g(self, aslist=False):
+    def get_n_g(self, as_list=False):
         '''Return the group index.
         
         Parameters
         ----------
-        aslist : boolean, optional
-            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `aslist=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.'''
+        as_list : boolean, optional
+            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.'''
         fimm.Exec(  self.modeString + "list[{" + str(self.list_num[0]) + "}].modedata.update(1)" + "\n"  )
         
         out=[]
         for num in self.list_num:
             out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].modedata.neffg")  )
         
-        if len(self.list_num) == 1 and aslist==False:
+        if len(self.list_num) == 1 and as_list==False:
             out = out[0]
         return out
     #end get_n_g()
@@ -225,19 +225,19 @@ class Mode:
         return self.get_n_g()
 
 
-    def get_kz(self, aslist=False):
+    def get_kz(self, as_list=False):
         '''Return the propagation constant.
         
         Parameters
         ----------
-        aslist : boolean, optional
-            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `aslist=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.'''
+        as_list : boolean, optional
+            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.'''
         #return fimm.Exec(self.modeString+"list[{"+str(self.list_num)+"}].beta")
         out=[]
         for num in self.list_num:
             out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].beta")  )
         
-        if len(self.list_num) == 1 and aslist==False:
+        if len(self.list_num) == 1 and as_list==False:
             out = out[0]
         return out
     
@@ -248,14 +248,14 @@ class Mode:
         return self.get_kz()
     
     
-    def get_percent_TE(self, aslist=False):
+    def get_percent_TE(self, as_list=False):
         '''Return the fraction of power that is TE polarized.
         If not calculated, returns `None` (Fimmwave returns -99).
         
         Parameters
         ----------
-        aslist : boolean, optional
-            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `aslist=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.'''
+        as_list : boolean, optional
+            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.'''
         #return fimm.Exec(self.modeString+"list[{"+str(self.list_num)+"}].modedata.tefrac")
         out=[]
         for num in self.list_num:
@@ -263,7 +263,7 @@ class Mode:
             if x == -99:     x = None
             out.append(  x  )
         
-        if len(self.list_num) == 1 and aslist==False:
+        if len(self.list_num) == 1 and as_list==False:
             out = out[0]
         return out
     
@@ -274,13 +274,13 @@ class Mode:
         return self.get_percent_TE()
     
     
-    def get_confinement(self, aslist=False):
+    def get_confinement(self, as_list=False):
         '''Return the confinement factor for this mode - how much of the optical mode overlaps with the waveguide segments set as "cfseg" (confinement factor). (See FimmWave Manual Sec.4.7)
         
         Parameters
         ----------
-        aslist : boolean, optional
-            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `aslist=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
+        as_list : boolean, optional
+            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
         
         Returns
         -------
@@ -292,17 +292,17 @@ class Mode:
         for num in self.list_num:
             out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].modedata.gammaE")  )
         
-        if len(self.list_num) == 1 and aslist==False:
+        if len(self.list_num) == 1 and as_list==False:
             out = out[0]
         return out
     
-    def get_confinement_ey(self, aslist=False):
+    def get_confinement_ey(self, as_list=False):
         '''This is a confinement factor estimation that includes just the Ey component of the field, defined over the region specified by the csfeg flag (see FimmWave Manual Sec.4.7).
         
         Parameters
         ----------
-        aslist : boolean, optional
-            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `aslist=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
+        as_list : boolean, optional
+            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
         
         Returns
         -------
@@ -314,18 +314,18 @@ class Mode:
         for num in self.list_num:
             out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].modedata.gammaEy")  )
         
-        if len(self.list_num) == 1 and aslist==False:
+        if len(self.list_num) == 1 and as_list==False:
             out = out[0]
         return out
     
-    def get_fill_factor(self, aslist=False):
+    def get_fill_factor(self, as_list=False):
         '''Return the fill factor for this mode.
         This is a measure of the fraction of the mode power flux defined over the region specified by the csfeg flag (see FimmWave Manual Sec.4.7).
         
         Parameters
         ----------
-        aslist : boolean, optional
-            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `aslist=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
+        as_list : boolean, optional
+            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
         
         Returns
         -------
@@ -337,17 +337,17 @@ class Mode:
         for num in self.list_num:
             out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].modedata.fillFac")  )
         
-        if len(self.list_num) == 1 and aslist==False:
+        if len(self.list_num) == 1 and as_list==False:
             out = out[0]
         return out
     
-    def get_dispersion(self, aslist=False):
+    def get_dispersion(self, as_list=False):
         '''Return the mode dispersion (ps/nm/km) - see Fimmwave Manual Sec. 13.2.8 for definition.
         
         Parameters
         ----------
-        aslist : boolean, optional
-            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `aslist=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
+        as_list : boolean, optional
+            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
         
         Returns
         -------
@@ -359,18 +359,18 @@ class Mode:
         for num in self.list_num:
             out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].modedata.dispersion")  )
         
-        if len(self.list_num) == 1 and aslist==False:
+        if len(self.list_num) == 1 and as_list==False:
             out = out[0]
         return out
     
-    def get_attenuation(self, aslist=False):
+    def get_attenuation(self, as_list=False):
         '''Return the mode attenuation (1/cm), calculated from the imaginary part of the effective (modal) index.
         Corresponds to `ModeLossEV` (complex attenuation), so only available with complex solvers.
         
         Parameters
         ----------
-        aslist : boolean, optional
-            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `aslist=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
+        as_list : boolean, optional
+            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
         
         Returns
         -------
@@ -381,17 +381,17 @@ class Mode:
         '''out=[]
         for num in self.list_num:
             #out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].modedata.alpha")  )
-            out.append(  self.get_n_eff(aslist=True).imag * 4*math.pi / (get_wavelength()*1e-4)  )
+            out.append(  self.get_n_eff(as_list=True).imag * 4*math.pi / (get_wavelength()*1e-4)  )
             '''
         # alpha [cm^-1] = imaginary(n_eff) * 4 pi / (wavelength [cm])
-        out = (   np.imag( self.get_n_eff(aslist=True) ) * 4*math.pi / (get_wavelength()*1e-4  )   ).tolist()  
+        out = (   np.imag( self.get_n_eff(as_list=True) ) * 4*math.pi / (get_wavelength()*1e-4  )   ).tolist()  
         # math on the numpy array returned by np.imag(), then conv. back to list
         
-        if len(self.list_num) == 1 and aslist==False:
+        if len(self.list_num) == 1 and as_list==False:
             out = out[0]
         return out
     
-    def get_material_loss(self, aslist=False):
+    def get_material_loss(self, as_list=False):
         '''Return the loss due to material absorption.  Based on the mode overlap with materials that have an attenuation/absorption coefficient.
         Corresponds to `ModeLossOV` in the GUI.
         If you are using a complex solver then modeLossOV is just the "material loss". When using a complex solver in absence of absorbing boundaries then modeLossEV and modeLossOV should match, provided that nx and ny are sufficient.
@@ -399,8 +399,8 @@ class Mode:
         
         Parameters
         ----------
-        aslist : boolean, optional
-            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `aslist=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
+        as_list : boolean, optional
+            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
         
         Returns
         -------
@@ -412,17 +412,17 @@ class Mode:
         for num in self.list_num:
             out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].modedata.alpha") * 1e4  )  # convert to 1/cm
         
-        if len(self.list_num) == 1 and aslist==False:
+        if len(self.list_num) == 1 and as_list==False:
             out = out[0]
         return out
     
-    def get_effective_area(self, aslist=False):
+    def get_effective_area(self, as_list=False):
         '''Return the effective core area (um^2).
         
         Parameters
         ----------
-        aslist : boolean, optional
-            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `aslist=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
+        as_list : boolean, optional
+            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
         
         Returns
         -------
@@ -434,17 +434,17 @@ class Mode:
         for num in self.list_num:
             out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].modedata.a_eff")  )
         
-        if len(self.list_num) == 1 and aslist==False:
+        if len(self.list_num) == 1 and as_list==False:
             out = out[0]
         return out
     
-    def get_side_loss(self, aslist=False):
+    def get_side_loss(self, as_list=False):
         '''Return the side power loss (1/um).  CHECK THESE UNITS - the popup window says 1/cm.
         
         Parameters
         ----------
-        aslist : boolean, optional
-            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `aslist=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
+        as_list : boolean, optional
+            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
         
         Returns
         -------
@@ -456,24 +456,24 @@ class Mode:
         for num in self.list_num:
             out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].modedata.sideploss")  )
         
-        if len(self.list_num) == 1 and aslist==False:
+        if len(self.list_num) == 1 and as_list==False:
             out = out[0]
         return out
     
-    def get_state(self, aslist=False):
+    def get_state(self, as_list=False):
         '''Get fimmwave state of this mode as integer.
         INTEGER - state: 0=INACTIVE,1=ACTIVE,2=BAD or INCONSISTENT
         
         Parameters
         ----------
-        aslist : boolean, optional
-            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `aslist=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.'''
+        as_list : boolean, optional
+            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.'''
         #return fimm.Exec(self.modeString+"list[{"+str(self.list_num)+"}].state")
         out=[]
         for num in self.list_num:
             out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].state")  )
         
-        if len(self.list_num) == 1 and aslist==False:
+        if len(self.list_num) == 1 and as_list==False:
             out = out[0]
         return out
     
@@ -496,8 +496,8 @@ class Mode:
             fimm.Exec(self.modeString + "setstate({" + str(num) + "},0)")
     
     
-    def field(self, component, IncludePML=True, aslist=False):
-        '''field(component [, IncludePML])
+    def get_field(self, component, include_pml=True, as_list=False):
+        '''field(component [, include_pml])
         Get the value of a particular electromagnetic field from this Mode.
         Returns the field component of the whole mode profile.
         
@@ -505,17 +505,23 @@ class Mode:
         ----------
         component : string, { 'Ex' | 'Ey' | 'Ez' | 'Hx' | 'Hy' | 'Hz' | 'I' }, case insensitive
             Choose which field component to return.  I is intensity.
-        IncludePML : { True | False }
+            
+        include_pml : { True | False }
             Whether to include perfectly-matched layer boundary conditons.  True by default.
-        aslist : boolean, optional
-            If a single-value is returned, by defualt it's de-listed (just a float/int).  If `aslist=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
+            
+        as_list : boolean, optional
+            If a single-mode is returned, by default it's de-listed (just a singel array).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.
+        
         
         Returns
         -------
-        Numpy [N x N] array of all the field values.
+        fieldarray : [Nx x Ny] list of all the field values.  
+            Nx and Ny are set by `pyfimm.set_Nx()` & `.set_Ny()`.
+            It is recommended that you convert this to an array for performing math, eg. `numpy.array( fieldarray )`
+            If multiple modes were selected (eg. `WG.mode([0,1,2])`), then a list is returned containing the numpy field array for each mode, eg. `fieldarray = [  Mode0[Nx x Ny],  Mode1[Nx x Ny],  Mode2[Nx x Ny]  ]`
         '''
-        if IncludePML:
-            if DEBUG(): print "Mode.field(): IncludePML"
+        if include_pml:
+            if DEBUG(): print "Mode.field(): include_pml"
             pml = '1'
         else:
             pml='0'
@@ -555,16 +561,19 @@ class Mode:
         #field =  fimm.Exec("f.fieldarray")
         out=[]
         for num in self.list_num:
-            fimm.Exec("Set f = " + self.modeString + "list[" + str(num) + "].profile.data.getfieldarray(" + comp + "," + pml + ")  \n"  )
-            out.append(  fimm.Exec("f.fieldarray")  )
+            fimm.Exec("Set f = " + self.modeString + "list[" + str(num) + "].profile.data.getfieldarray(" + comp + "," + pml + ")  \n"  )  # must set this as a variable to avoid memory error
+            out.append(  fimm.Exec("f.fieldarray")  )   # grab the array (as list)
         
-        if len(self.list_num) == 1 and aslist==False:
+        if len(self.list_num) == 1 and as_list==False:
             out = out[0]
         return out
 
         #if DEBUG(): print "Mode.field(): \n", field, "\n--------------"
         #return np.array(field)
-    #end field()
+    #end get_field()
+    
+    # Alias for this function
+    field = get_field
         
         
     def P(self):
@@ -658,7 +667,7 @@ class Mode:
     
     
     def plot(self, *args, **kwargs ):
-        #, IncludePML=True):
+        #, include_pml=True):
         '''plot( [ component, title='str', return_handles=False ] )
         Plot the mode fields with matplotlib.  If multiple modes are specified (eg. `WG.mode([0,1,2]).plot()` ) then each mode will be plotted in a 2-column subplot on one figure.
         
@@ -775,7 +784,7 @@ class Mode:
         
         
         # get effective indices of each mode (add to plot):
-        nmodes = self.get_n_eff(aslist=True)
+        nmodes = self.get_n_eff(as_list=True)
         if DEBUG(): print "mode.plot(): nmodes =", nmodes
         
         # create the required number of axes:

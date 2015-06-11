@@ -8,6 +8,7 @@ from __globals import *         # import global vars & FimmWave connection objec
 from __Waveguide import *   # rectangular waveguide class
 from __Circ import *        # cylindrical (fiber) waveguide class
 from __Tapers import *      # import Taper/WGLens classes
+from __Mode import Mode     # import Mode class
 
 
 
@@ -503,22 +504,69 @@ class Device(Node):
     #end get_output_vector()
     
     
-    def plot_input_field(amplitude_list, component='I'):
-        '''Plot the incident field.  Useful for viewing what a superposition of the various basis modes would look like.
+    def get_input_field(self, component='I', amplitude_list=None, side='left', include_pml=True):
+        '''Return the input field.  Useful for viewing what a superposition of the various basis modes would look like.
         
         Parameters
         ----------
-        amplitude_list : array-like, required
-            The mode-vector to plot.  The mode-vector is a list with `get_N()` elements, where each element is the amplitude & phase coefficient of each waveguide mode.  Using the modes as a basis-set, you can construct any mode profile, as mode modes are included in the calculation.
-        
         component = {'Ex' | 'Ey' | 'Ez' | 'Hx' | 'Hy' | 'Hz' | 'Px' | 'Py' | 'Pz' | 'I' }, case-insensitive, optional
             Plot the specified field component along the Z direction.
             'E' is electric field, 'H' is magnetic field, 'P' is the Poynting vector, 'I' is Intensity, and 'x/y/z' chooses the component of each vector to return.
-            Defaults to "I"
-            
+            Defaults to "I".
+        
+        amplitude_list : array-like, optional
+            The mode-vector to plot.  The mode-vector is a list with `get_N()` elements (as used in `Device.set_input()`), where each element is the amplitude & phase coefficient of each waveguide mode.  Using the modes as a basis-set, you can construct any mode profile, as mode modes are included in the calculation.
+            If not specified, will use the currently-set input field, (Dev.input_field_left/right) corresponding to the chosen `side`.
+        
+        side : { 'left' | 'right' }, optional
+            Which side of the device to get the launch mode for.
+        
+        include_pml : { True | False }, optional
+            Include any perfectly-matched layers in the plot?  True by default.
         '''
-        print "WARNING: Device.plot_input_field(): NOT IMPLEMENTED.  Nothing Done."
-        pass
+
+        """
+        def mode(self,modeN):
+        '''Waveguide.mode(int): Return the specified pyFimm Mode object for this waveguide.'''
+        return Mode(self, modeN,"app.subnodes[{"+str(self.parent.num)+"}].subnodes[{"+str(self.num)+"}].evlist.")
+        
+        For Device:
+        app.subnodes[1].subnodes[3].cdev.eltlist[1].wg.evlist.update
+        = self.nodestring + ".cdev.eltlist[1].wg.evlist."
+        """
+        
+        component = component.strip().lower()
+        
+        
+        modelist = range(0, get_N() )     # list like [0,1,2,3]
+        
+        side = side.lower().strip()
+        
+        if side == 'left' or side == 'l' or side == 'lhs':
+            if amplitude_list is None:  amplitude_list = self.input_field_left
+            n=1     # 1st element
+        elif side == 'right' or side == 'r' or side == 'rhs':
+            if amplitude_list is None:  amplitude_list = self.input_field_right
+            n = self.elementpos[-1]     # last element
+        
+        # calculate modes of the element:
+        if DEBUG(): print 'Device "%s"' % self.name + '.plot_input_field(): Calculating modes of element %i...' % n
+        fimm.Exec(  self.nodestring + ".cdev.eltlist[%i].wg.evlist.update" % n  )
+        
+        modes =  Mode(self, modelist, self.nodestring + ".cdev.eltlist[%i].wg.evlist." % n   )
+        fields = modes.get_field(  component  , include_pml=include_pml, as_list=True ) # returns list of all the fields
+        
+        if DEBUG(): print "Dev.plot_input_field():\n", "np.shape(fields) = ", np.shape(fields), "\n", "len(fields)=", len(fields), "\n", "len(fields[0])=", len(fields[0])
+        
+        superfield = np.zeros_like( fields[0] )     # zeros with same dims as returned field
+        #if DEBUG(): print "fields = ", fields
+        for i, field   in   enumerate(fields):
+            if DEBUG(): print "i=",i, "\n","amplitude_list[i]=", amplitude_list[i], "\n", "np.shape(field)=", np.shape(field)
+            a = np.array(field) * amplitude_list[i]
+            b = superfield + a
+            superfield = superfield + np.array(field) * amplitude_list[i]
+        
+        return superfield
         '''
         - can get FimmWave to do this?
         
@@ -528,9 +576,78 @@ class Device(Node):
         - calculate the field to plot 
         
         '''
-    #end plot_input_field()
+    #end get_input_field()
     
     # Alias for the same function:
+    get_inc_field = get_input_field
+    
+    
+    def plot_input_field(self, component='I', amplitude_list=None, side='left', include_pml=True, title=None, annotations=False, return_handles=False):
+        '''Plot the input field.  Useful for viewing what a superposition of the various basis modes would look like.
+        
+        Parameters
+        ----------
+        component = {'Ex' | 'Ey' | 'Ez' | 'Hx' | 'Hy' | 'Hz' | 'Px' | 'Py' | 'Pz' | 'I' }, case-insensitive, optional
+            Plot the specified field component along the Z direction.
+            'E' is electric field, 'H' is magnetic field, 'P' is the Poynting vector, 'I' is Intensity, and 'x/y/z' chooses the component of each vector to return.
+            Defaults to "I".
+        
+        amplitude_list : array-like, optional
+            The mode-vector to plot.  The mode-vector is a list with `get_N()` elements (as used in `Device.set_input()`), where each element is the amplitude & phase coefficient of each waveguide mode.  Using the modes as a basis-set, you can construct any mode profile, as mode modes are included in the calculation.
+            If not specified, will use the currently-set input field, (Dev.input_field_left/right) corresponding to the chosen `side`.
+        
+        side : { 'left' | 'right' }, optional
+            Which side of the device to get the launch mode for.
+        
+        include_pml : { True | False }, optional
+            Include any perfectly-matched layers in the plot?  True by default.
+        
+        title : string, optional
+            Will prepend this text to the output filename, and do the same to the Plot Title.
+            If not provided, the name of the passed Waveguide component, Mode Number & Field Component will be used to construct the filename & plot title.
+        
+        annotations : boolean, optional
+            If true, the effective index, mode number and field component will written on each mode plot.  True by default.
+        
+        return_handles : { True | False }, optional
+            If True, will return handles to the figure, axes and images.  False by default.
+        
+        
+        Returns
+        -------
+        fig, axes, imgs
+            The matplotlib figure, axis and image (`pyplot.imshow()` ) handles.  Only returned if `return_handles=True`
+        `fig` is the handle to the whole figure, allowing you to, for example, save the figure yourself (instead of using `Mode.save_plot()` ) via `fig.savefig(pat/to/fig.png)`.
+        `ax` is a list of the possibly multiple axes created by a call to maplotlib.pyplot.subplots().  Note the non-matlab-like behviour of the returned axes array: they take the form of the actual subplots layout.  
+        For example, for a single axis created by
+        >>> fig, axes, imgs = strip.mode( 0 ).plot( return_handles=True)
+        axes is a single axis handle.
+        For two axes (eg. `mode( [0,1] ).plot()`, `axes` is a two-valued array: [ax0, ax1]
+        However, for more than 2 modes, `axes` takes the form of the subplots layout, like so:
+        >>> fig, axes, imgs = strip.mode( [0,1,2,3,4,5] ).plot( return_handles=True)
+        >   axes = [  [ax0, ax1],
+                      [ax2, ax3],
+                      [1x4, ax5]   ]
+        So be careful when indexing into a plot of numerous modes, due to the weirdness of `pyplot.subplots()`.
+        
+        '''
+        field = get_input_field(self, component=component, amplitude_list=amplitude_list, side=side, include_pml=include_pml)
+        
+        if title:
+            plot_title = title + " - Mode " + str(self.modenum)
+        else:
+            plot_title = '"'+self.obj.name+'":' + " Mode " + str(self.modenum)
+        
+        # Options for the subplots:
+        sbkw = {'axisbg': (0.15,0.15,0.15)}    # grey plot background
+        fig1, axs = plt.subplots(nrows=1, ncols=1, subplot_kw=sbkw)
+        
+        fig1.suptitle(plot_title)   # figure title
+        fig1.canvas.draw()  # update the figure
+        
+    #end plot_input_field()
+    
+    # Alias for the above function:
     plot_inc_field = plot_input_field
     
     
