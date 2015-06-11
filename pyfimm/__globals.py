@@ -11,6 +11,10 @@ global pf_DEBUG
 pf_DEBUG = False   # set to true for verbose outputs onto Python console - applies to all submodules/files
 
 
+# custom colormaps:
+from colormap_RedBlackBlue import cm_hotcold, cm_coldhot
+
+
 # Create FimmWave connection object.
 import PhotonDesignLib.pdPythonLib as pd
 global fimm

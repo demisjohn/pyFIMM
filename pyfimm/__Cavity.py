@@ -183,7 +183,7 @@ class Cavity(object):
         
         eigenvalues, eigenvectors : 2-D list of floats
             The complex eigenvalues & eigenvectors at each of the calculated wavelengths. First dimension of the array is to choose lateral mode (up to get_N() ).  eg.  [   [EigV_mode0_WL0, EigV_mode0_WL1, ... EigV_mode0_WLN],  [EigV_mode1_WL0, EigV_mode1_WL1, ... EigV_mode1_WLN],    ... ,   [EigV_modeN_WL0, EigV_modeN_WL1, ... EigV_modeN_WLN]    ]
-            The imaginary part of the eigenvalue corresponds to the round-trip optical phase, and the real part corresponds to the cavity loss.  The eigenvectors are vectors containing the amplitudes of each mode required to attain the corresponding eigenvalue, and they can be input directly into a Device via `Device.set_input_field( <vector> )`.
+            The imaginary part of the eigenvalue corresponds to the round-trip optical phase, and the real part corresponds to the cavity loss.  The eigenvectors are vectors containing the amplitudes of each mode required to attain the corresponding eigenvalue, and they can be input directly into a Device via `Device.set_input( <vector> )`.
             
         
         resonance_wavelengths, resonance_eigenvalues, resonance_eigenvectors : 2-D list of floats
@@ -384,7 +384,7 @@ class Cavity(object):
                 so len( CavityObj.eigenvalues ) == NumModes = pyFIMM.get_N()
         
         eigenvects : numpy array
-            The calculated eigenvectors - amplitude coefficient for each calc'd mode in the central section to achieve the above eigenvalues.  Similar format as eigenvects.  These can be launched via `DeviceObj.set_input_field()`.
+            The calculated eigenvectors - amplitude coefficient for each calc'd mode in the central section to achieve the above eigenvalues.  Similar format as eigenvects.  These can be launched via `DeviceObj.set_input()`.
         '''
         import sys  # for progress bar
         nWLs = len(scan_wavelengths)    # Number of WLs.

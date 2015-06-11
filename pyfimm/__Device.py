@@ -287,7 +287,7 @@ class Device(Node):
         return self.__wavelength
     
     
-    def set_input_field(self,amplitude_list, side=None, normalize=False, warn=True):
+    def set_input(self,amplitude_list, side=None, normalize=False, warn=True):
         '''Set input ("incident") field vector - takes a list with amplitude coefficients (complex) for each mode number, as entered into the "Vector" mode of the "View > Set Input" menu of a FimmWave Device.
         `set_inc_field()` is an alias to this function.
         
@@ -380,11 +380,11 @@ class Device(Node):
     
     
     # Alias for the same function:
-    set_inc_field = set_input_field
-    set_input_vector = set_input_field
+    set_inc_field = set_input
+    set_input_vector = set_input
     
     
-    def get_input_field(self):
+    def get_input(self):
         '''Return the input field vector. 
         Returns a list, like so [<Left-hand field> , <Right-hand field>].  
         If a side has no input field, it will contain only the value `None`.
@@ -437,8 +437,8 @@ class Device(Node):
     #end get_input_field()
     
     # Alias for the same function:
-    get_inc_field = get_input_field
-    get_input_vector = get_input_field
+    get_inc_field = get_input
+    get_input_vector = get_input
     
     
     def get_output_vector(self, side='right', direction='right'):
@@ -549,6 +549,12 @@ class Device(Node):
             if amplitude_list is None:  amplitude_list = self.input_field_right
             n = self.elementpos[-1]     # last element
         
+        '''
+        # normalize amplitude_list
+        mag = np.sum(  [np.abs(x) for x in amplitude_list]  )
+        amplitude_list = np.array(amplitude_list)/float(mag)
+        '''
+        
         # calculate modes of the element:
         if DEBUG(): print 'Device "%s"' % self.name + '.plot_input_field(): Calculating modes of element %i...' % n
         fimm.Exec(  self.nodestring + ".cdev.eltlist[%i].wg.evlist.update" % n  )
@@ -556,24 +562,19 @@ class Device(Node):
         modes =  Mode(self, modelist, self.nodestring + ".cdev.eltlist[%i].wg.evlist." % n   )
         fields = modes.get_field(  component  , include_pml=include_pml, as_list=True ) # returns list of all the fields
         
-        if DEBUG(): print "Dev.plot_input_field():\n", "np.shape(fields) = ", np.shape(fields), "\n", "len(fields)=", len(fields), "\n", "len(fields[0])=", len(fields[0])
+        if DEBUG(): print "Dev.get_input_field():\n", "np.shape(fields) = ", np.shape(fields), "\n", "len(fields)=", len(fields), "\n", "len(fields[0])=", len(fields[0])
         
         superfield = np.zeros_like( fields[0] )     # zeros with same dims as returned field
-        #if DEBUG(): print "fields = ", fields
         for i, field   in   enumerate(fields):
             if DEBUG(): print "i=",i, "\n","amplitude_list[i]=", amplitude_list[i], "\n", "np.shape(field)=", np.shape(field)
-            a = np.array(field) * amplitude_list[i]
-            b = superfield + a
+            if DEBUG(): print "get_input_field(): min/max(field) = %f/%f" % (np.min(np.array(field).real), np.max(np.array(field).real))
             superfield = superfield + np.array(field) * amplitude_list[i]
-        
-        return superfield
+
+        return superfield.transpose()
         '''
         - can get FimmWave to do this?
         
-        - Acquire the fields for each mode via internal functions self.field
-        - Multiply each field by the amplitude_list vector
-        - add each field
-        - calculate the field to plot 
+        - Provided that you are only launching light from one end of the Device (either LHS or RHS) then the best way to do this is to export the forward (LHS) or backward (RHS) field profile at the launching end of the Device; this is the equivalent of right-click "\View XY field at..." in the GUI.
         
         '''
     #end get_input_field()
@@ -618,32 +619,35 @@ class Device(Node):
         fig, axes, imgs
             The matplotlib figure, axis and image (`pyplot.imshow()` ) handles.  Only returned if `return_handles=True`
         `fig` is the handle to the whole figure, allowing you to, for example, save the figure yourself (instead of using `Mode.save_plot()` ) via `fig.savefig(pat/to/fig.png)`.
-        `ax` is a list of the possibly multiple axes created by a call to maplotlib.pyplot.subplots().  Note the non-matlab-like behviour of the returned axes array: they take the form of the actual subplots layout.  
-        For example, for a single axis created by
-        >>> fig, axes, imgs = strip.mode( 0 ).plot( return_handles=True)
-        axes is a single axis handle.
-        For two axes (eg. `mode( [0,1] ).plot()`, `axes` is a two-valued array: [ax0, ax1]
-        However, for more than 2 modes, `axes` takes the form of the subplots layout, like so:
-        >>> fig, axes, imgs = strip.mode( [0,1,2,3,4,5] ).plot( return_handles=True)
-        >   axes = [  [ax0, ax1],
-                      [ax2, ax3],
-                      [1x4, ax5]   ]
-        So be careful when indexing into a plot of numerous modes, due to the weirdness of `pyplot.subplots()`.
+        `ax` is the handle of the single axis object on the figure.
+        `cont` is the handle to the contourf() plot (filled-contour).
         
         '''
-        field = get_input_field(self, component=component, amplitude_list=amplitude_list, side=side, include_pml=include_pml)
+        field = self.get_input_field(component=component, amplitude_list=amplitude_list, side=side, include_pml=include_pml)
         
         if title:
-            plot_title = title + " - Mode " + str(self.modenum)
+            plot_title = title + " - %s=%s" %(side, amplitude_list)
         else:
-            plot_title = '"'+self.obj.name+'":' + " Mode " + str(self.modenum)
+            plot_title = '"%s": ' % self.name  +  "%s=%s" %(side, amplitude_list)
         
         # Options for the subplots:
         sbkw = {'axisbg': (0.15,0.15,0.15)}    # grey plot background
-        fig1, axs = plt.subplots(nrows=1, ncols=1, subplot_kw=sbkw)
+        fig, ax = plt.subplots(nrows=1, ncols=1, subplot_kw=sbkw)
         
-        fig1.suptitle(plot_title)   # figure title
-        fig1.canvas.draw()  # update the figure
+        fig.suptitle(plot_title, fontsize=10)   # figure title
+        fig.canvas.draw()  # update the figure
+        
+        # generate X & Y coords:
+        x = range( np.shape(field)[1] )
+        y = range( np.shape(field)[0] )
+        
+        if DEBUG(): print "Dev.plot_input_field(): min/max(field) = %f/%f" % (np.min(np.array(field).real), np.max(np.array(field).real))
+        maxfield = np.max(   np.abs(  np.array(field).real  )   )
+        cont = ax.contourf( np.array(x), np.array(y), np.array(field) , vmin=-maxfield, vmax=maxfield, cmap=cm_coldhot)      # cm_hotcold, cm.hot, RdYlBu, RdPu, RdBu, PuOr, 
+        
+        fig.canvas.draw()
+        
+        if return_handles: return fig, ax, cont
         
     #end plot_input_field()
     

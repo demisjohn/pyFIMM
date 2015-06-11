@@ -140,7 +140,7 @@ dev.buildNode(name='WG Device', parent=wg_prj)  # same as the above three lines
 
 
 # View fields in the device
-dev.set_input_field( [1,0,0] )  # Set to launch Mode #0 only
+dev.set_input( [1,0,0] )  # Set to launch Mode #0 only
 dev.plot('I')   # plot the intensity versus Z.
 dev.plot('Ex', direction='-z', title='Reflected (-z) field')  # Plot reflected wave only
 
