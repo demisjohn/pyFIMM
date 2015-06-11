@@ -12,7 +12,7 @@ pf_DEBUG = False   # set to true for verbose outputs onto Python console - appli
 
 
 # custom colormaps:
-from colormap_RedBlackBlue import cm_hotcold, cm_coldhot
+from colormap_HotCold import cm_hotcold
 
 
 # Create FimmWave connection object.

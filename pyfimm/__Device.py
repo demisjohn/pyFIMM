@@ -643,7 +643,7 @@ class Device(Node):
         
         if DEBUG(): print "Dev.plot_input_field(): min/max(field) = %f/%f" % (np.min(np.array(field).real), np.max(np.array(field).real))
         maxfield = np.max(   np.abs(  np.array(field).real  )   )
-        cont = ax.contourf( np.array(x), np.array(y), np.array(field) , vmin=-maxfield, vmax=maxfield, cmap=cm_coldhot)      # cm_hotcold, cm.hot, RdYlBu, RdPu, RdBu, PuOr, 
+        cont = ax.contourf( np.array(x), np.array(y), np.array(field) , vmin=-maxfield, vmax=maxfield, cmap=cm_hotcold)      # cm_hotcold, cm.hot, RdYlBu, RdPu, RdBu, PuOr, 
         
         fig.canvas.draw()
         
