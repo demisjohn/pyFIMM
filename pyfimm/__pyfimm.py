@@ -398,7 +398,7 @@ class Project(Node):
         Set the fimmwave name for this node.
     
     buildNode : { True | False }, optional
-        build the project node right away?  
+        build the project node right away?  Requires than a name is passed.
     
     overwrite : { True | False }, optional
         Only valid if `buildNode=True`. If True, will delete a project already open in FimmWave with the same name if it's the last project in the FimmWave list, otherwise will rename the offending Project (retaining desired name of this new Project).  If False, and a similarly-named Project exists in FimmWave, will modify the supplied project name. 
@@ -419,14 +419,17 @@ class Project(Node):
     
     """
     
-    def __init__(self, name, buildNode=False, overwrite=False, warn=True , *args, **kwargs):
-        self.built = False
-        self.num = self.nodestring = self.savepath = None
+    def __init__(self, name=None, buildNode=False, overwrite=False, warn=True , *args, **kwargs):
         
         #build = kwargs.pop('buildNode', False)  # to buildNode or not to buildNode?
         #overwrite = kwargs.pop('overwrite', False)  # to overwrite existing project of same name
+        
         super(Project, self).__init__(name)   # call Node() constructor, passing extra args
         ## Node('NameOfNode', NodeNumber, ParentNodeObject, Children)
+        
+        self.built = False
+        self.num = self.nodestring = self.savepath = None
+        if name: self.name = name
         
         #kwargs.pop('overwrite', False)  # remove kwarg's which were popped by Node()
         #kwargs.pop('warn', False)
@@ -622,7 +625,7 @@ def import_Project(filepath, name=None, overwrite=False, warn=True):
     '''app.openproject: FUNCTION - ( filename[, nodename] ): open the specified project with the specified node name'''
     fimm.Exec("app.openproject(" + str(filepath) + ', "'+ newprjname + '" )'  )   # open the .prj file
     
-    prj = Project()     # new Project obj
+    prj = Project(prjname)     # new Project obj
     prj.type = 'project'  # unused!
     prj.num = node_num
     prj.built = True
