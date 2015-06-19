@@ -93,7 +93,7 @@ See the Examples directory for full examples, as some details are missing here.
 
 
 ## Installation
-To use pyFIMM, simply download one of the released versions (see the "releases" or "tags" section of this page) and extract the archive into a directory.  Your Python script should reside in the same directory as the *pyfimm* folder, or else you should the parent directory of the *pyfimm* folder to your Python path at the beginning of your script.    
+To use pyFIMM, simply download one of the released versions (see the "releases" or "tags" section of this page) and extract the archive into a directory.  Your Python script should reside in the same directory as the *pyfimm* folder, or else you should add the parent directory of the *pyfimm* folder to your Python path at the beginning of your script.    
 
 Since FimmWave & FimmProp require Windows, you must run this on a Windows system with FimmWave installed (or via a Parallels virtual-machine).  Make sure your FimmWave executable starts up with the ability to interact with external scripts like Python (see FimmWave manual section 11.9, for setting up the scripting connection by starting Fimmwave with the '-pt 5101' command-line option, to listen on port 5101). 
 
