@@ -583,7 +583,7 @@ class Device(Node):
     get_inc_field = get_input_field
     
     
-    def plot_input_field(self, component='I', amplitude_list=None, side='left', include_pml=True, title=None, annotations=False, return_handles=False):
+    def plot_input_field(self, component='I', amplitude_list=None, side='left', include_pml=True, title=None, annotations=False, return_handles=False, plot_type='pseudocolor'):
         '''Plot the input field.  Useful for viewing what a superposition of the various basis modes would look like.
         
         Parameters
@@ -609,6 +609,9 @@ class Device(Node):
         
         annotations : boolean, optional
             If true, the effective index, mode number and field component will written on each mode plot.  True by default.
+        
+        plot_type : { 'pseudocolor' | 'contourf' }, optional
+            Plot the modes as pseudo-color (interpolated coloring, default) or filled contour?
         
         return_handles : { True | False }, optional
             If True, will return handles to the figure, axes and images.  False by default.
@@ -643,8 +646,14 @@ class Device(Node):
         
         if DEBUG(): print "Dev.plot_input_field(): min/max(field) = %f/%f" % (np.min(np.array(field).real), np.max(np.array(field).real))
         maxfield = np.max(   np.abs(  np.array(field).real  )   )
-        cont = ax.contourf( np.array(x), np.array(y), np.array(field) , vmin=-maxfield, vmax=maxfield, cmap=cm_hotcold)      # cm_hotcold, cm.hot, RdYlBu, RdPu, RdBu, PuOr, 
         
+        if plot_type is 'pseudocolor':
+            cont = ax.pcolor( np.array(x), np.array(y), np.array(field) , vmin=-maxfield, vmax=maxfield, cmap=cm_hotcold)      # cm_hotcold, cm.hot, RdYlBu, RdPu, RdBu, PuOr, 
+        elif plot_type is 'contourf':
+            cont = ax.contourf( np.array(x), np.array(y), np.array(field) , vmin=-maxfield, vmax=maxfield, cmap=cm_hotcold)      # cm_hotcold, cm.hot, RdYlBu, RdPu, RdBu, PuOr, 
+        else:
+            ErrStr = 'Device "%s".plot_input_field(): ' % self.name + 'Unrecognized plot_type: `%s`. ' % plot_type + 'Please use `contour` or `psuedocolor` or leave unsepcified.'
+            raise ValueError( ErrStr )
         fig.canvas.draw()
         
         if return_handles: return fig, ax, cont
@@ -1689,6 +1698,13 @@ def import_Device( fimmpath, project=None):
     
     
     '''
+    Do need to distinguish the elements,
+        - which are joints (jointpos) and which are elements
+        - in Dev.elements, insert dummy-Section?  When interrogates, returns Warning "Loaded form external file"
+    determine each element's length
+    determine total device length
+    Do NOT look inside each element - obviates ability to make paths etc.
+    
     Var wg=app.subnodes[1].subnodes[3].cdev.getwg(0)
     could not find item "Var wg"
     

@@ -125,7 +125,7 @@ class Mode:
             self.obj = args[0]  # the waveguide object
             num = args[1]       # mode number(s) requested
             #self.list_num = args[1] + 1     # add one to ModeNum
-            self.modeString = args[2]   # fimmwave string to access the mode
+            self.modeString = args[2]   # fimmwave string to access the mode, including trailing `.`
         else:
             print 'Invalid number of input arguments to Mode()'
         
