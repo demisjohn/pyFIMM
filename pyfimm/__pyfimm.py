@@ -113,12 +113,12 @@ def check_node_name( name, nodestring="app.", overwrite=False, warn=True ):
         Print a warning if the node name exists?  Defaults to True.
     
     overwrite : { True | False }, optional
-        If True, will try to delete an already-open Fimmwave project that has the same name in Fimmwave.  Will only delete the node if it is the last in the node list (otherwise other node references will be broken when a node is deleted) - otherwise, the offending FimmWave node will have it's name changed.  If False, will append timestamp (ms only) to supplied project name and return it in `nodename`.  False by default.
+        If True, will try to delete an already-loaded Fimmwave project that has the same name in Fimmwave.  Will only delete the node if it is the last in the node list (This prevents breaking pyFIMM references to FimmWave Projects). Otherwise, the new FimmWave node will have it's name changed. If False, will append random digits to supplied project name and return it in `nodename`.  False by default.
     
     Returns
     -------
     nodename : str
-        New name for the node.  If `name` existed in the specified node list, `nodename` will have random digits appended to the name.  Otherwise, it will be left untouched.  if `nodename != name` then `name` already exists in the FimmWave node list.
+        New name for the node.  If the original `name` existed in the specified node list, `nodename` will have random digits appended to the name.  Otherwise, it will be left untouched, and be identical to the provided `name`.  Thus, if `nodename != name` then the node `name` already exists in the FimmWave node list.  The modified name will have the form `OrigNodeName.123456`.
     
     sameprojnum : int
         Node Number of the offending identically-named node.  
@@ -270,47 +270,34 @@ class Node(object):
         The modified name can be found in the variable: `Node.name`
         if the keyword argument `overwrite=True` is provided, then an existing Node with the same name will be deleted upon building."""
     def __init__(self,*args, **kwargs):
-        if len(args) == 0:
+        if len(args) >= 0:
             self.name = 'Fimmwave Node ' + dt.datetime.now().strftime("%Y-%m-%d %H.%M.%S")
             self.num = 0
             self.parent = None
             self.children = []
             self.type = None
             self.savepath = None
-        elif len(args) == 1:
+        
+        if len(args) == 1:
             self.name = args[0]
-            self.num = 0
-            self.parent = None
-            self.children = []
-            self.type = None
-            self.savepath = None
         elif len(args) == 2:
             self.name = args[0]
             self.num = args[1]
-            self.parent = None
-            self.children = []
-            self.type = None
-            self.savepath = None
         elif len(args) == 3:
             self.name = args[0]
             self.num = args[1]
             self.parent = args[2]
-            self.children = []
-            self.type = None
-            self.savepath = None
         elif len(args) == 4:
             self.name = args[0]
             self.num = args[1]
             self.parent = args[2]
             self.children = args[3]
-            self.type = None
-            self.savepath = None
-        else:
+        elif len(args) >= 5:
             print 'Invalid number of input arguments to Node()'
         
         
-        overwrite = kwargs.pop('overwrite', False)  # to overwrite existing project of same name
-        warn = kwargs.pop('warn', True)     # display warning is overwriting?
+        #overwrite = kwargs.pop('overwrite', False)  # to overwrite existing project of same name
+        #warn = kwargs.pop('warn', True)     # display warning is overwriting?
         
         """
         ## Check if top-level node name conflicts with one already in use:
@@ -403,18 +390,18 @@ class Node(object):
 class Project(Node):
     """Create new Fimmwave Project, with incremented node number.
     Project inherits from the Node class. 
-    Arguments are passed to this Node class constructor - type help('pyFIMM.Node') for available arguments.
+    DEPRECATED: Arguments are passed to the Node class constructor - type help('pyFIMM.Node') for available arguments.
     
     Parameters
     ----------
-    buildNode : { True | False }
-        build the project node right away?
-        
     name : string
-        Set the fimmwave name for this node
+        Set the fimmwave name for this node.
     
-    overwrite : { True | False }
-        if True, will delete a project already open in FimmWave with the same name if it's the last project in the FimmWave list, otherwise will rename the offending Project (retaining desired name of this new Project).  If False, and a similarly-named Project exists in FimmWave, will modify the supplied project name. 
+    buildNode : { True | False }, optional
+        build the project node right away?  
+    
+    overwrite : { True | False }, optional
+        Only valid if `buildNode=True`. If True, will delete a project already open in FimmWave with the same name if it's the last project in the FimmWave list, otherwise will rename the offending Project (retaining desired name of this new Project).  If False, and a similarly-named Project exists in FimmWave, will modify the supplied project name. 
         The modified name is created by adding a random number to the end, such as "NewNodeName.123456", and can be found in the variable: `ProjectObj.name`.
         
     Attributes
@@ -432,15 +419,19 @@ class Project(Node):
     
     """
     
-    def __init__(self, name='', build=False, warn=True, *args, **kwargs):
+    def __init__(self, name, buildNode=False, overwrite=False, warn=True , *args, **kwargs):
         self.built = False
-        self.name = self.num = self.nodestring = self.savepath = None
-        build = kwargs.pop('buildNode', False)  # to buildNode or not to buildNode?
+        self.num = self.nodestring = self.savepath = None
+        
+        #build = kwargs.pop('buildNode', False)  # to buildNode or not to buildNode?
         #overwrite = kwargs.pop('overwrite', False)  # to overwrite existing project of same name
-        super(Project, self).__init__(*args, **kwargs)   # call Node() constructor, passing extra args
-        kwargs.pop('overwrite', False)  # remove kwarg's which were popped by Node()
-        kwargs.pop('warn', False)
-        if build: self.buildNode(  )    # Hopefully Node `pops` out any kwargs it uses.
+        super(Project, self).__init__(name)   # call Node() constructor, passing extra args
+        ## Node('NameOfNode', NodeNumber, ParentNodeObject, Children)
+        
+        #kwargs.pop('overwrite', False)  # remove kwarg's which were popped by Node()
+        #kwargs.pop('warn', False)
+        
+        if buildNode: self.buildNode(overwrite=overwrite, warn=warn  )    # Hopefully Node `pops` out any kwargs it uses.
         
         if kwargs:
             '''If there are unused key-word arguments'''
@@ -450,7 +441,7 @@ class Project(Node):
             ErrStr += "}.    Continuing..."
             print ErrStr
         
-    def buildNode(self, name=None, overwrite=False):
+    def buildNode(self, name=None, overwrite=False, warn=True):
         '''Build the Fimmwave node of this Project.
         
         Parameters
@@ -458,8 +449,9 @@ class Project(Node):
         name : string, optional
             Provide a name for this waveguide node.
         
-        overwrite : { True | False }
-            If True, will overwrite an already-open project with the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.
+        overwrite : { True | False }, optional
+            If True, will delete a project already open in FimmWave with the same name if it's the last project in the FimmWave list, otherwise will rename the offending Project (retaining desired name of this new Project).  If False, and a similarly-named Project exists in FimmWave, will modify the supplied project name. 
+        The modified name is created by adding a random number to the end, such as "NewNodeName.123456", and can be found in the variable: `ProjectObj.name`.
         '''
         
         if DEBUG(): print "Project.buildNode():"
@@ -467,6 +459,7 @@ class Project(Node):
         self.type = 'project'   # unused!
         
         
+        """ Deprecated - using check_node_name() instead.
         ## Check if top-level (project) node name conflicts with one already in use:
         #AppSubnodes = fimm.Exec("app.subnodes")        # The pdPythonLib didn't properly handle the case where there is only one list entry to return.  Although we could now use this function, instead we manually get each subnode's name:
         N_nodes = int(  fimm.Exec("app.numsubnodes")  )
@@ -496,6 +489,11 @@ class Project(Node):
             #if DEBUG(): print "Node name is unique."
             pass
         #end if(self.name already exists) aka. len(sameprojname)
+        """
+        
+        nodestring = "app."     # the top-level
+        self.name, samenodenum = check_node_name( self.name, nodestring=nodestring, overwrite=overwrite, warn=warn )  # get modified nodename & nodenum of same-named Proj, delete/rename existing node if needed.
+        
         
         '''Create the new node:     '''
         N_nodes = fimm.Exec("app.numsubnodes")
@@ -505,6 +503,7 @@ class Project(Node):
         self.nodestring = "app.subnodes[%i]." % self.num
         self.savepath = None
         self.built = True
+    #end buildNode()
     
     
     def savetofile(self, path=None, overwrite=False):
@@ -582,7 +581,7 @@ def import_Project(filepath, name=None, overwrite=False, warn=True):
     if name is None:
         # Get name from the Project file we're opening
         prjf = open(filepath)
-        prjtxt = prjf.read()
+        prjtxt = prjf.read()    # load the entire file
         prjf.close()
     
         import re   # regex matching
@@ -599,6 +598,7 @@ def import_Project(filepath, name=None, overwrite=False, warn=True):
         #groups() prints all captured groups
     else:
         prjname = name
+    
     
     nodestring = "app."
     newprjname, samenodenum = check_node_name( prjname, nodestring=nodestring, overwrite=overwrite, warn=warn )  # get modified nodename & nodenum of same-named Proj, delete/rename existing node if needed.
