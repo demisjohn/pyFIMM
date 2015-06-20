@@ -1,6 +1,7 @@
 '''Device class, part of pyFIMM.'''
 
 from __pyfimm import *      # import the main module (should already be imported)
+#  NOTE: should have to duplicate the entire pyfimm file here!  Should just import the funcs we need...
 
 from __globals import *         # import global vars & FimmWave connection object
 # DEBUG() variable is also set in __globals
@@ -24,9 +25,13 @@ class Device(Node):
     By default the waveguides are joined by the Simple Joint type, and parameters are inherited from the Device node.
     Inherits from the Node class - see help on pyFIMM.Node for member functions/properties.
     
+    Please type `dir(DeviceObj)` or `help(DeviceObj)` to see all the attributes and methods available.
+    
+    
     Parameters
     ----------
     elements : List of { Waveguide object | Circ objects }
+    
     
     Attributes
     ----------
@@ -40,6 +45,8 @@ class Device(Node):
     built : { True | False }
         Whether or not this Device has been built in Fimmwave via buildNode().
     
+    origin : { 'pyfimm' | 'fimmwave' }
+        Indicates whether this Device was built using pyFIMM, or was constructed in FimmWave & imported via `import_device()`.
     
     After Device.buildNode() has been called, the following become available:
     
@@ -89,12 +96,13 @@ class Device(Node):
     - Add support for Tapers/WGLenses
     - Add support for Input/Output ports, eg. Device( IOPort1() + WG1(100.0) + IOPort2() )
     - Input Device objects (one nesting layer only) and construct node from constituent elements of each Device object.
-    - add suport for Paths (eg. non-straight WG's)
+    - add suport for Paths (eg. non-straight WG's) - Done, use `import_device()`
     
     """
     def __init__(self,*args):
         #if DEBUG(): print "Device Constructor: args=\n", args
-        if DEBUG(): print "Device Constructor: " + str( len(args[0]) )  + " elements passed."
+        if DEBUG(): print "Device Constructor: " 
+        if DEBUG() and len(args) > 0:  print str( len(args[0]) )  + " elements passed."
         self.origin = 'pyfimm'   # Device was constructed in pyFIMM
         self.name = None
         self.calculated= False   # has this Device been calculated yet?
@@ -1171,7 +1179,7 @@ class Device(Node):
         name : string, optional
             Provide a name for this waveguide node.  Will overwrite a previously specified existing name.
         parent : Node object, optional
-            provide the parent (Project/Device) Node object for this waveguide.  If specified previously by Device.parent=<parentNode>, this will overwrite that setting.
+            Provide the parent (Project/Device) Node object for this waveguide.  If specified previously by Device.parent=<parentNode>, this will overwrite that setting.
         
         overwrite : { True | False }, optional
             Overwrite existing node of same name?  Defaults to False, which will rename the node if it has the same name as an existing node.
@@ -1188,8 +1196,15 @@ class Device(Node):
         if name: self.name = name
         if parent: self.parent = parent
         
+        parent.children.append(self)
+        
+        '''
         nodestring="app.subnodes["+str(self.parent.num)+"]."
         self._checkNodeName(nodestring, overwrite=overwrite, warn=warn)     # will alter the node name if needed
+        '''
+        
+        #nodestring = parent.nodestring
+        check_node_name(self.name, parent.nodestring, overwrite=overwrite, warn=warn)
         
         self.jointpos = []    # eltlist[] position of simple joints
         self.elementpos = []  # eltlist[] position of each waveguide element
@@ -1677,27 +1692,76 @@ class Device(Node):
 
 
 # Create new Device objects by importing from another Project:
-def import_Device( fimmpath, project=None):
+def import_device( project, fimmpath):
     '''Return a new Device object from within an existing Project.
     The Project should have been created in pyFIMM beforehand.  To grab a Device from a file, use `pyFIMM.import_Project()` to generate the Project from a file, and then call `import_Device()` referencing that Project.
     Device.get_origin() will return 'fimm' for this new Device - it will not load the elements and waveguides used in the Device's construction.
     
+    project : pyFIMM Project object
+        Specify the pyFIMM Project from which to acquire the Device.
+    
     fimmpath : string
         The FimmProp path to the Device, within the specified project.  This takes the form of something like "Dev1" if the device named "DevName" is at the top-level of the FimmProp Project, or "DevName/SubDevName" is SubDevName is under another Device node.
-
-    project : pyFIMM Project object, optional
-        Specify the pyFIMM Project from which to acquire the Device.
+    
+    Please type `dir(DeviceObj)` or `help(DeviceObj)` to see all the attributes and methods available.
+    
+    
+    Attributes
+    ----------
+    The returned Device object will most of the same attributes as a standard pyFIMM Device object, with the following exceptions:
+    
+    DevObj.num : nonexistent
+        Instead, use the attribute `DevObj.nodestring` to reference the device object in FimmWave.
+    
+    DevObj.elements : nonexistent
+        To allow for all the various Element construction methods available in FimmWave (eg. etch/grow paths etc.), pyFIMM will not populate the elements list of the imported Device.
+        However, `.elementpos` and `.jointpos` will be populated properly so that you can differentiate between joints and waveguide elements.
+    
+    
     
     Examples
     --------
+    To open a Device from a file, import the project file first:
+    >> prj = pyfimm.import_project('T:\Python Work\pyFIMM Simulations\example4 - WG Device 1.prj', overwrite=True)
+    Create Device from that Project:
+    >>> DevObj = pyfimm.import_device( prj,  "Name Of My Device In The Project" )
+    The string as actually a FimmWave path, so could reference subnodes like "ParentDev/TheDeviceIWant".
     
     '''
+    if DEBUG(): print "import_device( %s, %s )"%(project.name, fimmpath)
+    
     dev = Device()      # new pyFIMM Device object
-    dev.origin = 'fimm'   # Device was constructed in FimmProp, not pyFIMM
-
+    dev.elements = dev.num = None
+    dev.parent = project
+    dev.origin = 'fimmwave'   # Device was constructed in FimmProp, not pyFIMM
+    dev.name = fimmpath.split('/')[-1]      # get the last part of the path
     
+    devname = "DevExt_%i" %(  get_next_refnum()  )  # generate dev reference name
+    # create fimmwave reference to the Device:
+    if DEBUG(): print "Ref& %s = "%(devname) + project.nodestring + "findnode(%s)"%(fimmpath)
+    ret = fimm.Exec( "Ref& %s = "%(devname) + project.nodestring + "findnode(%s)"%(fimmpath)   )
+    ret = strip_txt( ret )
+    if DEBUG(): print "\tReturned:\n%s"%(ret)
+    dev.nodestring = devname    # use this to reference the device in Fimmwave
+    
+    ret = strip_txt(  fimm.Exec( '%s.objtype'%(dev.nodestring) )  )
+    if ret != 'FPDeviceNode':
+        ErrStr = "The referenced node `%s` is not a FimmProp Device or couldn't be found!\n\t"%(fimmpath) + "Instead got object type `%s`."%(ret)
+        raise ValueError(ErrStr)
+    
+    dev.built = True
+    
+    # populate elementpos & jointpos:
+    # populate lengths:
+    pass
     
     '''
+    Let FimMWave find the node for us:
+    Ref& R = app.subnodes[1].findnode(WG Device) - no quotes!
+    
+    R.objtype
+    FPDeviceNode
+    
     Do need to distinguish the elements,
         - which are joints (jointpos) and which are elements
         - in Dev.elements, insert dummy-Section?  When interrogates, returns Warning "Loaded form external file"
@@ -1736,3 +1800,9 @@ app.subnodes[1].subnodes[3].cdev.eltlist[2].objtype
 >>> pf.Exec("app.subnodes[1].subnodes[3].cdev.eltlist[2].objtype")
 'FPsimpleJoint'
     '''
+    
+    return dev
+#end import_device()
+
+# Alias to the same function:
+import_Device = import_device

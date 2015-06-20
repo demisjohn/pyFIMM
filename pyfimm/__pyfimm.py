@@ -91,6 +91,9 @@ def strip_txt(FimmString):
     if FimmString.endswith(junkchars): out = FimmString.strip( junkchars )     # strip off FimmWave EOL/EOF chars.
     return out
 
+# Alias for the same function:
+strip_text = striptxt = strip_txt
+
 def strip_array(FimmArray):
     '''Remove EOL & 'None' elements of a returned list or array.'''
     print "WARNING: strip_array Incomplete!"
@@ -123,11 +126,26 @@ def check_node_name( name, nodestring="app.", overwrite=False, warn=True ):
     sameprojnum : int
         Node Number of the offending identically-named node.  
         Thus the FimmWave command `nodestring + ".subnodes[ nodenum ].delete` will delete the existing node with the same name.
+        
+        
+    Examples
+    --------
+    Get modified nodename & nodenum of same-named Proj, delete/rename existing node if needed.
+    >>> nodestring = "app."
+    >>> newprjname, samenodenum = check_node_name( prjname, nodestring=nodestring, overwrite=False, warn=True )  
+    Create the new node with returned name, which was modified if needed:
+    >>> fimm.Exec(    "app.addsubnode(fimmwave_prj," + str(  newprjname  ) + ")"    )
+    
+    Do the same, but with `overwrite=True`, ensuring that the name we specify will be used.
+    >>> prjname = "My New Project"
+    >>> check_node_name( prjname, nodestring="app.", overwrite=True )  
+    >>> fimm.Exec(    "app.addsubnode(fimmwave_prj," + str(  prjname  ) + ")"    )
+    
     '''
     N_nodes = int(  fimm.Exec(nodestring+"numsubnodes")  )
     SNnames = []    #subnode names
     for i in range(N_nodes):
-        SNnames.append(  fimm.Exec(nodestring+r"subnodes["+str(i+1)+"].nodename").strip()[:-2]  )   
+        SNnames.append(  strip_txt(  fimm.Exec(nodestring+r"subnodes["+str(i+1)+"].nodename")  )  )   
         # trim whitespace via string's strip(), strip the two EOL chars '\n\x00' from end via indexing [:-2]
     # check if node name is in the node list:
     sameprojidx = np.where( np.array(SNnames) == np.array([name]) )[0]
@@ -184,7 +202,46 @@ def get_next_refnum():
     
     global_refnums.append(  r  )
     return global_refnums[-1]   # return last random number
+#end get_next_refnum()
 
+
+def close_all(warn=True):
+    '''Close all open Projects, discarding unsaved changes.
+    
+    Parameters
+    ----------
+    warn : { True | False }, optional
+        True by default, which will prompt user for confirmation.
+    '''
+    nodestring="app."   # top-level, deleting whole Projects
+    N_nodes = int(  fimm.Exec(nodestring+"numsubnodes")  )
+    
+    wstr = "Will close" if warn else "Closing"
+    
+    WarnStr = "WARNING: %s all the following open Projects,\n\tdiscarding unsaved changes:\n"%(wstr)
+    SNnames = []    #subnode names
+    for i in range(N_nodes):
+        SNnames.append(  strip_txt(  fimm.Exec(nodestring+r"subnodes["+str(i+1)+"].nodename")  )  )   
+        WarnStr = WarnStr + "\t%s\n"%(SNnames[-1])
+    
+    print WarnStr
+    
+    if warn:
+        # get user confirmation:
+        cont = raw_input("Are you sure? [y/N]: ").strip().lower()
+    else:
+        cont = 'y'
+    
+    if cont == 'y':
+        fString = ''
+        for i in range(N_nodes):
+            fString += nodestring + "subnodes[1].close()\n"
+        fimm.Exec( fString )
+    else:
+        print "close_all(): Cancelled."
+#end close_all()
+    
+    
 
 
 ####################################
@@ -388,9 +445,12 @@ class Node(object):
             
             
 class Project(Node):
-    """Create new Fimmwave Project, with incremented node number.
+    """Return a new Fimmwave Project, with incremented node number.
     Project inherits from the Node class. 
     DEPRECATED: Arguments are passed to the Node class constructor - type help('pyFIMM.Node') for available arguments.
+    
+    Please type `dir(ProjectObj)` or `help(ProjectObj)` to see all the attributes and methods available.
+    
     
     Parameters
     ----------
@@ -403,7 +463,8 @@ class Project(Node):
     overwrite : { True | False }, optional
         Only valid if `buildNode=True`. If True, will delete a project already open in FimmWave with the same name if it's the last project in the FimmWave list, otherwise will rename the offending Project (retaining desired name of this new Project).  If False, and a similarly-named Project exists in FimmWave, will modify the supplied project name. 
         The modified name is created by adding a random number to the end, such as "NewNodeName.123456", and can be found in the variable: `ProjectObj.name`.
-        
+    
+    
     Attributes
     ----------
     
@@ -416,6 +477,9 @@ class Project(Node):
     nodestring : string, to access this node in FimmWave.  Eg. `app.subnodes[5].`, including trailing period `.`.
     
     savepath : string, the path to file for the project.
+    
+    origin : { 'pyfimm' | 'fimmwave' }
+        Indicates whether this Device was built using pyFIMM, or was constructed in FimmWave & imported via `import_device()`.
     
     """
     
@@ -549,7 +613,7 @@ class Project(Node):
 #end class(Project)
 
 
-def import_Project(filepath, name=None, overwrite=False, warn=True):
+def import_project(filepath, name=None, overwrite=False, warn=True):
     '''Import a Project from a file.  
     
     filepath : string
@@ -632,13 +696,15 @@ def import_Project(filepath, name=None, overwrite=False, warn=True):
     prj.savepath = savepath
     prj.name = strip_txt(  fimm.Exec(  "app.subnodes[%i].nodename "%(prj.num)  )  )
     
-    prj.origin = 'fimm'
+    prj.origin = 'fimmwave'
     prj.nodestring = "app.subnodes[%i]."%(prj.num)
     
     
     return prj
 #end ImportProject()
 
+# Alias to the same function:
+import_Project = import_project
 
 '''
 app.openproject(T:\MZI Encoder\MZI Encoder v8.prj,"")  <-- see if 2nd arg is NodeName, if so, could obviate issue with re-opening a project (name already exists)
