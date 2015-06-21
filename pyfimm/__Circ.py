@@ -319,7 +319,7 @@ class Circ(Node):
         
         if self.built:
             self.__wavelength = float(wl)
-            fimm.Exec(  self.nodestring + ".lambda = " + str(self.__wavelength) + "   \n"  )
+            fimm.Exec(  self.nodestring + ".evlist.svp.lambda = " + str(self.__wavelength) + "   \n"  )
         else:
             self.__wavelength = float(wl)
     
@@ -642,7 +642,7 @@ class Circ(Node):
                 raise ValueError("Invalid Modesolver String: " + str(get_mode_solver()) )
         
         # Set wavelength:
-        wgString += self.nodestring + ".lambda = " + str( self.get_wavelength() ) + "   \n"
+        wgString += self.nodestring + ".evlist.svp.lambda = " + str( self.get_wavelength() ) + "   \n"
         
         wgString += solverString
         

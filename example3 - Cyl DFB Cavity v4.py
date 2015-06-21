@@ -120,7 +120,7 @@ dfb_right.calc()
 dfb_right.plot_refractive_index()   # Fig1: show the refractive index versus Z for this device.
 
 
-dfb_left.set_input_field([1,0,0], side='right', normalize=True)   # launch only 1st Mode from right side
+dfb_left.set_input([1,0,0], side='right', normalize=True)   # launch only 1st Mode from right side
 dfb_left.plot('Ex', direction='left')     # Fig2: Plot Ex field for this launch, for left-propagating field (since injected on right side)
 #dfb_left.plot('Ey', refractive_index=True)  # can also plot refractive index on same figure
 

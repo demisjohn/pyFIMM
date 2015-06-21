@@ -369,7 +369,7 @@ class Waveguide(Node):
         
         if self.built:
             self.__wavelength = float(wl)
-            fimm.Exec(  self.nodestring + ".lambda = " + str(self.__wavelength) + "   \n"  )
+            fimm.Exec(  self.nodestring + ".evlist.svp.lambda = " + str(self.__wavelength) + "   \n"  )
         else:
             self.__wavelength = float(wl)
     
@@ -417,9 +417,10 @@ class Waveguide(Node):
         self.num = node_num    
         
         # make RWG node:
-        wgString = "app.subnodes["+str(self.parent.num)+"].addsubnode(rwguideNode,"+str(self.name)+")"+"\n"
+        #wgString = "app.subnodes["+str(self.parent.num)+"].addsubnode(rwguideNode,"+str(self.name)+")"+"\n"
+        wgString = self.parent.nodestring + ".addsubnode(rwguideNode,"+str(self.name)+")"+"\n"
         
-        self.nodestring = "app.subnodes["+str(self.parent.num)+"].subnodes["+str(self.num)+"]"
+        self.nodestring = self.parent.nodestring + ".subnodes["+str(self.num)+"]"
         
         fimm.Exec(  wgString + self.get_buildNode_str(self.nodestring, warn=warn)  ) 
         #self.BuildRectNode()  
@@ -777,7 +778,7 @@ class Waveguide(Node):
                 raise ValueError( ErrStr )
         
         # Set wavelength:
-        wgString += self.nodestring + ".lambda = " + str( self.get_wavelength() ) + "   \n"
+        wgString += self.nodestring + ".evlist.svp.lambda = %f \n"%(self.get_wavelength() )
         
         wgString += solverString
         

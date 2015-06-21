@@ -107,7 +107,7 @@ class Device(Node):
         self.name = None
         self.calculated= False   # has this Device been calculated yet?
         self.built=False        # has the Dev been build in FimmProp?
-        self.input_field_left, self.input_field_right = 0,0     # input fields
+        self.input_field_left = self.input_field_right = None     # input fields
         self.__wavelength = get_wavelength()    # get global wavelength
         self.__inc_field = None     # incident/input field - DEPRECATED
         self.elementpos = self.jointpos = []
@@ -168,9 +168,10 @@ class Device(Node):
             length : float
                 The new length of the selected element.
         '''
-        prj_num = self.parent.num
-        node_num = self.num
-        fimm.Exec( "app.subnodes[{"+ str(prj_num) +"}].subnodes[{"+ str(node_num) +"}].cdev.eltlist[{"+ str(int(element_num)) +"}].length={"+ str(float(length)) +"}" )
+        #prj_num = self.parent.num
+        #node_num = self.num
+        #app.subnodes[{"+ str(prj_num) +"}].subnodes[{"+ str(node_num) +"}]
+        fimm.Exec( self.nodestring + ".cdev.eltlist[{"+ str(int(element_num)) +"}].length={"+ str(float(length)) +"}" )
     
     
     def calc(self, zpoints=3000, zmin=0.0, zmax=None, xcut=0.0, ycut=0.0):
@@ -190,10 +191,11 @@ class Device(Node):
             min & max z-coorinates. Defaults to 0-->Device Length (plot entire Device).
         
         '''
-        prj_num = self.parent.num
-        node_num = self.num
+        #prj_num = self.parent.num
+        #node_num = self.num
+        #"app.subnodes[{"+ str(prj_num) +"}].subnodes[{"+ str(node_num) +"}]."
         if not zmax: zmax = self.get_length()
-        fimm.Exec("app.subnodes[{"+ str(prj_num) +"}].subnodes[{"+ str(node_num) +"}]."+"calczfield("+ str(zpoints) +","+ str(zmin) +", "+ str(zmax) +","+ str(xcut) +","+ str(ycut) +",1)"    +"\n")
+        fimm.Exec(self.nodestring + ".calczfield("+ str(zpoints) +","+ str(zmin) +", "+ str(zmax) +","+ str(xcut) +","+ str(ycut) +",1)"    +"\n")
         self.calculated=True
     #end calc()
     
@@ -391,6 +393,9 @@ class Device(Node):
     set_inc_field = set_input
     set_input_vector = set_input
     
+    def set_input_field(self):
+        '''DEPRECATED: Perhaps you mean to use `set_input()`.'''
+        raise NameError("DEPRECATED: Perhaps you mean to use `set_input()`, which accepts a field vector or mode number.")
     
     def get_input(self):
         '''Return the input field vector. 
@@ -503,10 +508,12 @@ class Device(Node):
         prj_num = self.parent.num
         node_num = self.num
         
-        fpString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].calcoutputfield(" + str(dirnum) + "," + str(sidenum) + ")   " +"\n"
+        #app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}]
+        fpString = self.nodestring + ".calcoutputfield(" + str(dirnum) + "," + str(sidenum) + ")   " +"\n"
         fimm.Exec(fpString)
         
-        fpString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}]." + dirstr + "coeffs()   " +"\n"
+        #app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}]
+        fpString = self.nodestring + "." + dirstr + "coeffs()   " +"\n"
         out = fimm.Exec(fpString)
         return out[0][1:]   # strip the useless matrix chars `None` & `EOL` that FimmWave returns
     #end get_output_vector()
@@ -699,36 +706,36 @@ class Device(Node):
         prj_num = self.parent.num
         node_num = self.num
         if beam_pol.strip().lower() == 'te':
-            fpString = "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.theta=0"+"\n"
-            fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.phi=0"+"\n"
+            fpString = self.nodestring + ".lhsinput.theta=0"+"\n"
+            fpString += self.nodestring + ".lhsinput.phi=0"+"\n"
         elif beam_pol.strip().lower() == 'tm':
-            fpString = "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.theta=90"+"\n"
-            fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.phi=0"+"\n"
+            fpString = self.nodestring + ".lhsinput.theta=90"+"\n"
+            fpString += self.nodestring + ".lhsinput.phi=0"+"\n"
         else:
-            fpString = "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.theta=45"+"\n"
-            fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.phi=90"+"\n"
+            fpString = self.nodestring + ".lhsinput.theta=45"+"\n"
+            fpString += self.nodestring + ".lhsinput.phi=90"+"\n"
         
         
-        fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.inputtype=3"+"\n" # input type = beam
-        fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.iproftype=1"+"\n" # gaussian
+        fpString += self.nodestring + ".lhsinput.inputtype=3"+"\n" # input type = beam
+        fpString += self.nodestring + ".lhsinput.iproftype=1"+"\n" # gaussian
         
         if ref_z == 0:
-            fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.phasetype=0"+"\n" # collimated
+            fpString += self.nodestring + ".lhsinput.phasetype=0"+"\n" # collimated
         else:
-            fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.phasetype=1"+"\n" # spherical divergence
+            fpString += self.nodestring + ".lhsinput.phasetype=1"+"\n" # spherical divergence
         
-        fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.gaussh={"+str(h)+"}"+"\n"
-        fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.gaussw={"+str(w)+"}"+"\n"
-        fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.n0={"+str(inc_n)+"}"+"\n"
-        fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.h_tilt={"+str(hor_tilt)+"}"+"\n"
-        fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.v_tilt={"+str(ver_tilt)+"}"+"\n"
-        fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.pivxy.xalign=0"+"\n"
-        fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.pivxy.xoff={"+str(x_offset)+"}"+"\n"
-        fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.pivxy.yalign=0"+"\n"
-        fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.pivxy.yoff={"+str(y_offset)+"}"+"\n"
-        fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.pivz={"+str(z_offset)+"}"+"\n"
-        fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.refdist={"+str(ref_z)+"}"+"\n"
-        fpString += "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].lhsinput.refrot=0"
+        fpString += self.nodestring + ".lhsinput.gaussh={"+str(h)+"}"+"\n"
+        fpString += self.nodestring + ".lhsinput.gaussw={"+str(w)+"}"+"\n"
+        fpString += self.nodestring + ".lhsinput.n0={"+str(inc_n)+"}"+"\n"
+        fpString += self.nodestring + ".lhsinput.h_tilt={"+str(hor_tilt)+"}"+"\n"
+        fpString += self.nodestring + ".lhsinput.v_tilt={"+str(ver_tilt)+"}"+"\n"
+        fpString += self.nodestring + ".lhsinput.pivxy.xalign=0"+"\n"
+        fpString += self.nodestring + ".lhsinput.pivxy.xoff={"+str(x_offset)+"}"+"\n"
+        fpString += self.nodestring + ".lhsinput.pivxy.yalign=0"+"\n"
+        fpString += self.nodestring + ".lhsinput.pivxy.yoff={"+str(y_offset)+"}"+"\n"
+        fpString += self.nodestring + ".lhsinput.pivz={"+str(z_offset)+"}"+"\n"
+        fpString += self.nodestring + ".lhsinput.refdist={"+str(ref_z)+"}"+"\n"
+        fpString += self.nodestring + ".lhsinput.refrot=0"
         
         fimm.Exec(fpString)
     #end set_input_beam()
@@ -747,7 +754,7 @@ class Device(Node):
         '''
         prj_num = self.parent.num
         node_num = self.num
-        power_frac = fimm.Exec("app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].calcmodepower("+str(mode_n+1)+")")
+        power_frac = fimm.Exec(self.nodestring + ".calcmodepower("+str(mode_n+1)+")")
         return -10*log10(power_frac)
     #end get_coupling_loss()
     
@@ -763,7 +770,7 @@ class Device(Node):
             Which mode to calc loss for.'''
         prj_num = self.parent.num
         node_num = self.num
-        power_frac = fimm.Exec("app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].calcmodepower("+str(mode_n+1)+")")
+        power_frac = fimm.Exec(self.nodestring + ".calcmodepower("+str(mode_n+1)+")")
         return power_frac
     #end get_coupling_efficiency()
     
@@ -778,7 +785,7 @@ class Device(Node):
         '''Return reflection at Left port.'''
         prj_num = self.parent.num
         node_num = self.num
-        return fimm.Exec("app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.smat.ll[{"+str(out+1)+"}][{"+str(inc+1)+"}]")
+        return fimm.Exec(self.nodestring + ".cdev.smat.ll[{"+str(out+1)+"}][{"+str(inc+1)+"}]")
     
     def S_ll(self,out,inc):
         '''Return scattering Matrix Left-to-Left: Alias for R12()'''
@@ -789,7 +796,7 @@ class Device(Node):
         '''Return transmission from Left to Right.'''
         prj_num = self.parent.num
         node_num = self.num
-        return fimm.Exec("app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.smat.lr[{"+str(out+1)+"}][{"+str(inc+1)+"}]")
+        return fimm.Exec(self.nodestring + ".cdev.smat.lr[{"+str(out+1)+"}][{"+str(inc+1)+"}]")
     
     def S_lr(self,out,inc):
         '''Return scattering Matrix Left-to-Right: Alias for T12()'''
@@ -800,7 +807,7 @@ class Device(Node):
         '''Return reflection at Right port.'''
         prj_num = self.parent.num
         node_num = self.num
-        return fimm.Exec("app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.smat.rr[{"+str(out+1)+"}][{"+str(inc+1)+"}]")
+        return fimm.Exec(self.nodestring + ".cdev.smat.rr[{"+str(out+1)+"}][{"+str(inc+1)+"}]")
     
     def S_rr(self,out,inc):
         '''Return scattering Matrix Right-to-Right: Alias for R21()'''
@@ -811,7 +818,7 @@ class Device(Node):
         '''Return transmission from Right to Left.'''
         prj_num = self.parent.num
         node_num = self.num
-        return fimm.Exec("app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.smat.rl[{"+str(out+1)+"}][{"+str(inc+1)+"}]")
+        return fimm.Exec(self.nodestring + ".cdev.smat.rl[{"+str(out+1)+"}][{"+str(inc+1)+"}]")
     
     def S_rl(self,out,inc):
         '''Return scattering Matrix Right-to-Left: Alias for T21()'''
@@ -978,7 +985,7 @@ class Device(Node):
         #fimm.Exec("app.subnodes[{"+ str(prj_num) +"}].subnodes[{"+ str(node_num) +"}]."+"calczfield("+ str(NumPoints) +","+ str(zmin) +", "+ str(zmax) +","+ str(xpoint) +","+ str(ypoint) +",1)"    +"\n")
         
         # Extract the field values:
-        fpString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}]."+"zfieldcomp."+fieldstr+"\n"
+        fpString = self.nodestring + "."+"zfieldcomp."+fieldstr+"\n"
         zfield = fimm.Exec(fpString)
         zfield = zfield[0][1:]   # remove the first `None` entry & EOL char.
         
@@ -1220,8 +1227,8 @@ class Device(Node):
         if DEBUG(): print "Device.buildNode(): ",len(self.elements), " elements."
         
         # create new FimmProp Device
-        fimm.Exec("app.subnodes[{"+str(prj_num)+"}].addsubnode(FPdeviceNode,"+str(node_name)+")"+"\n")
-        self.nodestring = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}]"
+        fimm.Exec(self.parent.nodestring + ".addsubnode(FPdeviceNode,"+str(node_name)+")"+"\n")
+        self.nodestring = self.parent.nodestring + ".subnodes[%i]"%(node_num)
         
         
         elnum = 0   # element number in the Device - 1st/left-most is 1, next is 2, next is 3.
@@ -1275,7 +1282,7 @@ class Device(Node):
                 
                 # Add the waveguide node into this Device:
                 #   (assumes WG Node is in the root-level of this FimmWave Project)
-                fpString += "app.subnodes["+str(self.parent.num)+"].subnodes[{"+str(self.num)+"}].cdev.newwgsect("+str(elnum)+","+"../"+el.name+","+str(num2)+")  \n"      
+                fpString += self.nodestring + ".cdev.newwgsect("+str(elnum)+","+"../"+el.name+","+str(num2)+")  \n"      
                 self.elementpos.append(elnum)   # save the element number (elt) of this WG element.
                     
                 # Set the WG length:
@@ -1288,7 +1295,7 @@ class Device(Node):
             if ii != len(self.elements)-1:
                 '''Add a simple joint between waveguides.'''
                 elnum = elnum+1
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.newsjoint("+str(elnum)+")"+"\n"
+                fpString += self.nodestring + ".cdev.newsjoint("+str(elnum)+")"+"\n"
                 
                 
                 # Set the Joint method : 0="complete"  1=normal Fresnel, 2=oblique Fresnel, 3=special complete
@@ -1302,7 +1309,7 @@ class Device(Node):
                         jtype_warning = False   # suppress this warning from now on
                 #end if(joint type)
                     
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist["+str(elnum)+"].method="+str( jtype )+"\n"
+                fpString += self.nodestring + ".cdev.eltlist["+str(elnum)+"].method="+str( jtype )+"\n"
                 self.jointpos.append(elnum)   # add position of this joint to the joints list
 
             
@@ -1357,86 +1364,86 @@ class Device(Node):
         prj_num = self.parent.num
         node_name = self.name
         fpString=""
-        fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.newtaper({"+str(2*ii+1)+"},../"+str(el.lhs)+",../"+str(el.rhs)+")"+"\n"
-        fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].length={"+str(el.length)+"}"+"\n"
-        fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].shape_type=0"+"\n"
-        fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].itpfunc.string=\""+str()+"\""+"\n"
+        fpString += self.nodestring + ".cdev.newtaper({"+str(2*ii+1)+"},../"+str(el.lhs)+",../"+str(el.rhs)+")"+"\n"
+        fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].length={"+str(el.length)+"}"+"\n"
+        fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].shape_type=0"+"\n"
+        fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].itpfunc.string=\""+str()+"\""+"\n"
 
         if el.method == 'full':
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].int_method=0"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].int_method=0"+"\n"
         else:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].int_method=1"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].int_method=1"+"\n"
 
         if  mode_solver() == 'vectorial FDM real' or mode_solver() == 'semivecTE FDM real' or mode_solver() == 'semivecTM FDM real' or mode_solver() == 'vectorial FDM complex' or mode_solver() == 'semivecTE FDM complex' or mode_solver() == 'semivecTM FDM complex':
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].enableevscan=0"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].enableevscan=0"+"\n"
         else:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].enableevscan=1"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].enableevscan=1"+"\n"
 
-        fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.autorun=1"+"\n"
-        fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.speed=0"+"\n"
+        fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.autorun=1"+"\n"
+        fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.speed=0"+"\n"
 
         if horizontal_symmetry() is None:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.hsymmetry=0"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.hsymmetry=0"+"\n"
         else:
             if horizontal_symmetry() == 'none':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.hsymmetry=0"+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.hsymmetry=0"+"\n"
             elif horizontal_symmetry() == 'ExSymm':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.hsymmetry=1"+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.hsymmetry=1"+"\n"
             elif horizontal_symmetry() == 'EySymm':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.hsymmetry=2"+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.hsymmetry=2"+"\n"
             else:
                 print self.name + '.buildNode(): Invalid horizontal_symmetry. Please use: none, ExSymm, or EySymm'
 
         if vertical_symmetry() is None:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.vsymmetry=0"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.vsymmetry=0"+"\n"
         else:
             if vertical_symmetry() == 'none':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.vsymmetry=0"+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.vsymmetry=0"+"\n"
             elif vertical_symmetry() == 'ExSymm':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.vsymmetry=1"+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.vsymmetry=1"+"\n"
             elif vertical_symmetry() == 'EySymm':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.vsymmetry=2"+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.vsymmetry=2"+"\n"
             else:
                 print self.name + '.buildNode(): Invalid horizontal_symmetry. Please use: none, ExSymm, or EySymm'
         
         if N() is None:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.maxnmodes={10}"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.maxnmodes={10}"+"\n"
         else:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.maxnmodes={"+str(N())+"}"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.maxnmodes={"+str(N())+"}"+"\n"
 
         if NX() is None:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.nx={60}"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.nx={60}"+"\n"
             nx_svp = 60
         else:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.nx={"+str(NX())+"}"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.nx={"+str(NX())+"}"+"\n"
             nx_svp = NX()
 
         if NY() is None:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.ny={60}"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.ny={60}"+"\n"
             ny_svp = 60
         else:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.ny={"+str(NY())+"}"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.ny={"+str(NY())+"}"+"\n"
             ny_svp = NY()
 
         if min_TE_frac() is None:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.mintefrac={0}"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.mintefrac={0}"+"\n"
         else:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.mintefrac={"+str(min_TE_frac())+"}"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.mintefrac={"+str(min_TE_frac())+"}"+"\n"
         
         if max_TE_frac() is None:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.maxtefrac={100}"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.maxtefrac={100}"+"\n"
         else:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.maxtefrac={"+str(max_TE_frac())+"}"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.maxtefrac={"+str(max_TE_frac())+"}"+"\n"
         
         if min_EV() is None:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.evend={-1e+050}"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.evend={-1e+050}"+"\n"
         else:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.evend={"+str(min_EV())+"}"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.evend={"+str(min_EV())+"}"+"\n"
         
         if max_EV() is None:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.evstart={1e+050}"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.evstart={1e+050}"+"\n"
         else:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].mlp.evend={"+str(max_EV())+"}"+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].mlp.evend={"+str(max_EV())+"}"+"\n"
 
         if RIX_tol() is None:
             rix_svp = 0.010000
@@ -1454,45 +1461,45 @@ class Device(Node):
             mmatch_svp = mmatch()
 
         if mode_solver() is None:
-            fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=71"+"\n"
-            solverString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V1 "+str(nx_svp)+" "+str(ny_svp)+" 0 100 "+str(rix_svp)+"\n"
+            fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=71"+"\n"
+            solverString = self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V1 "+str(nx_svp)+" "+str(ny_svp)+" 0 100 "+str(rix_svp)+"\n"
         else:
             if mode_solver() == 'vectorial FDM real':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=71"+"\n"
-                solverString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V1 "+str(nx_svp)+" "+str(ny_svp)+" 0 100 "+str(rix_svp)+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=71"+"\n"
+                solverString = self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V1 "+str(nx_svp)+" "+str(ny_svp)+" 0 100 "+str(rix_svp)+"\n"
             elif mode_solver() == 'semivecTE FDM real':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=23"+"\n"
-                solverString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V1 "+str(nx_svp)+" "+str(ny_svp)+" 0 100 "+str(rix_svp)+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=23"+"\n"
+                solverString = self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V1 "+str(nx_svp)+" "+str(ny_svp)+" 0 100 "+str(rix_svp)+"\n"
             elif mode_solver() == 'semivecTM FDM real':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=39"+"\n"
-                solverString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V1 "+str(nx_svp)+" "+str(ny_svp)+" 0 100 "+str(rix_svp)+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=39"+"\n"
+                solverString = self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V1 "+str(nx_svp)+" "+str(ny_svp)+" 0 100 "+str(rix_svp)+"\n"
             elif mode_solver() == 'vectorial FDM complex':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=79"+"\n"
-                solverString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V1 "+str(nx_svp)+" "+str(ny_svp)+" 0 100 "+str(rix_svp)+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=79"+"\n"
+                solverString = self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V1 "+str(nx_svp)+" "+str(ny_svp)+" 0 100 "+str(rix_svp)+"\n"
             elif mode_solver() == 'semivecTE FDM complex':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=31"+"\n"
-                solverString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V1 "+str(nx_svp)+" "+str(ny_svp)+" 0 100 "+str(rix_svp)+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=31"+"\n"
+                solverString = self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V1 "+str(nx_svp)+" "+str(ny_svp)+" 0 100 "+str(rix_svp)+"\n"
             elif mode_solver() == 'semivecTM FDM complex':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=47"+"\n"
-                solverString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V1 "+str(nx_svp)+" "+str(ny_svp)+" 0 100 "+str(rix_svp)+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=47"+"\n"
+                solverString = self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V1 "+str(nx_svp)+" "+str(ny_svp)+" 0 100 "+str(rix_svp)+"\n"
             elif mode_solver() == 'vectorial FMM real':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=65"+"\n"
-                solverString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V2 "+str(n1d_svp)+" "+str(mmatch_svp)+" 1 300 300 15 25 0 5 5"+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=65"+"\n"
+                solverString = self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V2 "+str(n1d_svp)+" "+str(mmatch_svp)+" 1 300 300 15 25 0 5 5"+"\n"
             elif mode_solver() == 'semivecTE FMM real':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=17"+"\n"
-                solverString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V2 "+str(n1d_svp)+" "+str(mmatch_svp)+" 1 300 300 15 25 0 5 5"+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=17"+"\n"
+                solverString = self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V2 "+str(n1d_svp)+" "+str(mmatch_svp)+" 1 300 300 15 25 0 5 5"+"\n"
             elif mode_solver() == 'semivecTM FMM real':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=33"+"\n"
-                solverString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V2 "+str(n1d_svp)+" "+str(mmatch_svp)+" 1 300 300 15 25 0 5 5"+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=33"+"\n"
+                solverString = self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V2 "+str(n1d_svp)+" "+str(mmatch_svp)+" 1 300 300 15 25 0 5 5"+"\n"
             elif mode_solver() == 'vectorial FMM complex':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=73"+"\n"
-                solverString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V2 "+str(n1d_svp)+" "+str(mmatch_svp)+" 1 300 300 15 25 0 5 5"+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=73"+"\n"
+                solverString = self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V2 "+str(n1d_svp)+" "+str(mmatch_svp)+" 1 300 300 15 25 0 5 5"+"\n"
             elif mode_solver() == 'semivecTE FMM complex':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=25"+"\n"
-                solverString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V2 "+str(n1d_svp)+" "+str(mmatch_svp)+" 1 300 300 15 25 0 5 5"+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=25"+"\n"
+                solverString = self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V2 "+str(n1d_svp)+" "+str(mmatch_svp)+" 1 300 300 15 25 0 5 5"+"\n"
             elif mode_solver() == 'semivecTM FMM complex':
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=41"+"\n"
-                solverString = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V2 "+str(n1d_svp)+" "+str(mmatch_svp)+" 1 300 300 15 25 0 5 5"+"\n"
+                fpString += self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.solvid=41"+"\n"
+                solverString = self.nodestring + ".cdev.eltlist[{"+str(2*ii+1)+"}].svp.buff=V2 "+str(n1d_svp)+" "+str(mmatch_svp)+" 1 300 300 15 25 0 5 5"+"\n"
             else:
                 print self.name + '.buildNode(): Invalid Mode Solver. Please use: '
                 print '    vectorial FDM real, semivecTE FDM real,semivecTM FDM real, '
@@ -1577,9 +1584,9 @@ class Device(Node):
             if ii != len(self.elements)-1:
                 '''Add a simple joint between waveguides.'''
                 elnum = elnum+1
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.newsjoint("+str(elnum)+")"+"\n"
+                fpString += self.nodestring + ".cdev.newsjoint("+str(elnum)+")"+"\n"
                 # could choose method for the Simple Joint here:
-                fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].cdev.eltlist["+str(elnum)+"].method=0"+"\n"
+                fpString += self.nodestring + ".cdev.eltlist["+str(elnum)+"].method=0"+"\n"
                 self.jointpos.append(elnum)   # add position of this joint to the joints list
             
             # Make the joint
@@ -1607,7 +1614,7 @@ class Device(Node):
         node_name = el.name         # name of Device
         wgtypestr = "fwguideNode"
         
-        subnode_num = fimm.Exec( "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].numsubnodes  " ); 
+        subnode_num = fimm.Exec( self.nodestring + ".numsubnodes  " ); 
         subnode_num = int(subnode_num) + 1   # the WG node number under the Device Node
         
         el.subnodenum = subnode_num     # Which subnode the WG is built under; not sure if we'll use this later, but setting it anyway
@@ -1619,10 +1626,10 @@ class Device(Node):
         
         '''Create WG Node under dev. node.'''
         if DEBUG(): print "subnode_num=", subnode_num
-        fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].addsubnode("+wgtypestr+","+str(el.name)+")  \n"
+        fpString += self.nodestring + ".addsubnode("+wgtypestr+","+str(el.name)+")  \n"
         fimm.Exec(fpString); fpString=''
         
-        NodeStr = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].subnodes[{"+str(subnode_num)+"}]"
+        NodeStr = self.nodestring + ".subnodes[{"+str(subnode_num)+"}]"
         self.nodestr = NodeStr
         fimm.Exec(  el.get_buildNode_str(NodeStr )  )   # build the Node using object's own get_buildNodeStr()
         
@@ -1632,7 +1639,7 @@ class Device(Node):
         num1 = elnum    # position - 1st/left-most is 1, next is 2, next is 3.
         num2 = 1        # 0 = use Device parameters, 1 = use WG parameters
         #####
-        fpString += "app.subnodes["+str(self.parent.num)+"].subnodes[{"+str(self.num)+"}].cdev.newwgsect("+str(num1)+","+el.name+","+str(num2)+")  \n"
+        fpString += self.nodestring + ".cdev.newwgsect("+str(num1)+","+el.name+","+str(num2)+")  \n"
 
         
         #if DEBUG(): print "__BuildCylNode(): fpString=\n", fpString
@@ -1655,7 +1662,7 @@ class Device(Node):
         node_name = el.name
         wgtypestr = "rwguideNode"
         
-        subnode_num = fimm.Exec( "app.subnodes["+str(prj_num)+"].subnodes["+str(node_num)+"].numsubnodes  " ); 
+        subnode_num = fimm.Exec( self.nodestring + ".numsubnodes  " ); 
         subnode_num = int(subnode_num) + 1   # the WG node number under the Device Node
         
         el.subnodenum = subnode_num     # Which subnode the WG is built under; not sure if we'll use this later, but setting it anyway
@@ -1667,11 +1674,11 @@ class Device(Node):
         
         '''Create WG Node under dev. node.'''
         if DEBUG(): print "subnode_num=", subnode_num
-        fpString += "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].addsubnode("+wgtypestr+","+str(el.name)+")  \n"
+        fpString += self.nodestring + ".addsubnode("+wgtypestr+","+str(el.name)+")  \n"
         fimm.Exec(fpString); fpString=''
         
         
-        NodeStr = "app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}].subnodes[{"+str(subnode_num)+"}]"
+        NodeStr = self.nodestring + ".subnodes[{"+str(subnode_num)+"}]"
         self.nodestr = NodeStr
         fimm.Exec(  el.get_buildNode_str(NodeStr )  )   # build the Node using object's own get_buildNodeStr()
         
@@ -1680,9 +1687,9 @@ class Device(Node):
         num1 = elnum    # position - 1st/left-most is 1, next is 2, next is 3.
         num2 = 1        # 0 = use Device parameters, 1 = use WG parameters
         #####
-        fpString += "app.subnodes["+str(self.parent.num)+"].subnodes[{"+str(self.num)+"}].cdev.newwgsect("+str(num1)+","+el.name+","+str(num2)+")  \n"
+        fpString += self.nodestring + ".cdev.newwgsect("+str(num1)+","+el.name+","+str(num2)+")  \n"
         # Set the WG length:
-        fpString += "app.subnodes["+str(self.parent.num)+"].subnodes[{"+str(self.num)+"}].cdev.eltlist["+str(elnum)+"].length="+str(el.length) + "  \n"
+        fpString += self.nodestring + ".cdev.eltlist["+str(elnum)+"].length="+str(el.length) + "  \n"
         
         
         return fpString
@@ -1765,21 +1772,24 @@ def import_device( project, fimmpath):
     
     for   i, el    in enumerate(els):
         elnum=i+1
-        objtype = strip_text(    fimm.Exec(  "%s.cdev"%(dev.nodestring) + ".eltlist[%i].objtype"%(elnum)  )    )
+        objtype = strip_text(    fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].objtype"%(elnum)  )    )
         if objtype.lower().endswith('joint'):
             dev.jointpos.append(elnum)
         elif objtype == 'FPRefSection':
-            ''' This element references another '''
+            ''' This element references another element '''
             refpos = fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].getrefid()"%(elnum)  )
             if DEBUG(): print "Element %i is reference --> Element %i."%(elnum, refpos)
             dev.elementpos.append( refpos )     # Append the position of the Original!
             dev.lengths.append(  fimm.Exec( dev.nodestring + ".cdev.eltlist[%i].length"%(refpos)  )    )
             if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
         elif objtype.lower().endswith('section'):
+            ''' Regular waveguide section '''
             dev.elementpos.append(elnum)
             dev.lengths.append(  fimm.Exec( dev.nodestring + ".cdev.eltlist[%i].length"%(elnum)  )    )
             if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
-    
+        else:
+            print "Element %i: "%(elnum) + "Unsupported Element Type:", objtype
+            dev.elementpos.append(elnum)
     '''
     Let FimMWave find the node for us:
     Ref& R = app.subnodes[1].findnode(WG Device) - no quotes!
