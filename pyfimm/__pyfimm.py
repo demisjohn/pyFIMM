@@ -99,9 +99,10 @@ def strip_array(FimmArray):
     print "WARNING: strip_array Incomplete!"
     if  isinstance( FimmArray,  list ):
         if  FimmArray[0]  is None:  out = FimmArray[1:]     # omit 1st 'None' element
+    return out
     
 
-def check_node_name( name, nodestring="app.", overwrite=False, warn=True ):
+def check_node_name( name, nodestring="app", overwrite=False, warn=True ):
     ''' See if the node name already exists in FimmWave, and return a modified project name (with random numbers appended) if it exists.
     
     Parameters
@@ -131,21 +132,21 @@ def check_node_name( name, nodestring="app.", overwrite=False, warn=True ):
     Examples
     --------
     Get modified nodename & nodenum of same-named Proj, delete/rename existing node if needed.
-    >>> nodestring = "app."
+    >>> nodestring = "app"
     >>> newprjname, samenodenum = check_node_name( prjname, nodestring=nodestring, overwrite=False, warn=True )  
     Create the new node with returned name, which was modified if needed:
     >>> fimm.Exec(    "app.addsubnode(fimmwave_prj," + str(  newprjname  ) + ")"    )
     
     Do the same, but with `overwrite=True`, ensuring that the name we specify will be used.
     >>> prjname = "My New Project"
-    >>> check_node_name( prjname, nodestring="app.", overwrite=True )  
+    >>> check_node_name( prjname, nodestring="app", overwrite=True )  
     >>> fimm.Exec(    "app.addsubnode(fimmwave_prj," + str(  prjname  ) + ")"    )
     
     '''
-    N_nodes = int(  fimm.Exec(nodestring+"numsubnodes")  )
+    N_nodes = int(  fimm.Exec(nodestring+".numsubnodes")  )
     SNnames = []    #subnode names
     for i in range(N_nodes):
-        SNnames.append(  strip_txt(  fimm.Exec(nodestring+r"subnodes["+str(i+1)+"].nodename")  )  )   
+        SNnames.append(  strip_txt(  fimm.Exec(nodestring+r".subnodes["+str(i+1)+"].nodename")  )  )   
         # trim whitespace via string's strip(), strip the two EOL chars '\n\x00' from end via indexing [:-2]
     # check if node name is in the node list:
     sameprojidx = np.where( np.array(SNnames) == np.array([name]) )[0]
@@ -159,13 +160,13 @@ def check_node_name( name, nodestring="app.", overwrite=False, warn=True ):
             if sameprojidx == N_nodes:
                 '''It is the last node entry, so delete the offending identically-named node'''
                 if warn: print "node '%s'.buildNode(): Deleting existing Node # %s"%(name,str(sameprojidx)) + ", `%s`."%(sameprojname)
-                fimm.Exec( nodestring + "subnodes[%i].delete"%(sameprojidx) )
+                fimm.Exec( nodestring + ".subnodes[%i].delete"%(sameprojidx) )
             else:
                 '''It is not the last entry in the node list, so we can't delete it without breaking other pyFIMM references.'''
                 # change the name of offending node:
                 newname = name + "." +str( get_next_refnum() )
                 if warn: print "node '%s'.buildNode(): Renaming existing Node #"%(name)  +  str(sameprojidx) + ", `%s` --> `%s`."%(sameprojname, newname)
-                fimm.Exec( nodestring + "subnodes[%i].rename( "%(sameprojidx) + newname + " )"  )
+                fimm.Exec( nodestring + ".subnodes[%i].rename( "%(sameprojidx) + newname + " )"  )
         else:
             '''change the name of this new node'''
             name += "." +str( get_next_refnum() )       #dt.datetime.now().strftime('.%f')   # add current microsecond to the name
@@ -213,15 +214,15 @@ def close_all(warn=True):
     warn : { True | False }, optional
         True by default, which will prompt user for confirmation.
     '''
-    nodestring="app."   # top-level, deleting whole Projects
-    N_nodes = int(  fimm.Exec(nodestring+"numsubnodes")  )
+    nodestring="app"   # top-level, deleting whole Projects
+    N_nodes = int(  fimm.Exec(nodestring+".numsubnodes")  )
     
     wstr = "Will close" if warn else "Closing"
     
     WarnStr = "WARNING: %s all the following open Projects,\n\tdiscarding unsaved changes:\n"%(wstr)
     SNnames = []    #subnode names
     for i in range(N_nodes):
-        SNnames.append(  strip_txt(  fimm.Exec(nodestring+r"subnodes["+str(i+1)+"].nodename")  )  )   
+        SNnames.append(  strip_txt(  fimm.Exec(nodestring+r".subnodes["+str(i+1)+"].nodename")  )  )   
         WarnStr = WarnStr + "\t%s\n"%(SNnames[-1])
     
     print WarnStr
@@ -235,7 +236,7 @@ def close_all(warn=True):
     if cont == 'y':
         fString = ''
         for i in range(N_nodes):
-            fString += nodestring + "subnodes[1].close()\n"
+            fString += nodestring + ".subnodes[1].close()\n"
         fimm.Exec( fString )
     else:
         print "close_all(): Cancelled."
@@ -334,6 +335,7 @@ class Node(object):
             self.children = []
             self.type = None
             self.savepath = None
+            self.nodestring = None
         
         if len(args) == 1:
             self.name = args[0]
@@ -399,13 +401,21 @@ class Node(object):
     
     
     def _checkNodeName(self, nodestring, overwrite=False, warn=True):
-        '''Check for duplicate node name, overwrite if desired.'''
+        '''Check for duplicate node name, overwrite if desired.
+        
+        nodestring : string
+            string to reference the FimmWave node, omitting trailing period.  eg. 
+                app.subnodes[1].subnoes[3]
+        
+        overwrite : { True | False }, optional
+        warn : { True | False }, optional
+            '''
         ## Check if top-level node name conflicts with one already in use:
         #AppSubnodes = fimm.Exec("app.subnodes")        # The pdPythonLib didn't properly handle the case where there is only one list entry to return.  Although we could now use this function, instead we manually get each subnode's name:
-        N_nodes = int(  fimm.Exec(nodestring+"numsubnodes")  )
+        N_nodes = int(  fimm.Exec(nodestring+".numsubnodes")  )
         SNnames = []    #subnode names
         for i in range(N_nodes):
-            SNnames.append(  fimm.Exec(nodestring+r"subnodes["+str(i+1)+"].nodename").strip()[:-2]  )   
+            SNnames.append(  fimm.Exec(nodestring+r".subnodes["+str(i+1)+"].nodename").strip()[:-2]  )   
             # trim whitespace via string's strip(), strip the two EOL chars '\n\x00' from end via indexing [:-2]
         # check if node name is in the node list:
         sameprojname = np.where( np.array(SNnames) == np.array([self.name]) )[0]
@@ -416,7 +426,7 @@ class Node(object):
                 '''delete the offending identically-named node'''
                 if warn: print "Overwriting existing Node #" + str(sameprojname) + ", `" + SNnames[sameprojname] + "`."
                 sameprojname = sameprojname[0]+1
-                fimm.Exec(nodestring+"subnodes["+str(sameprojname)+"].delete")
+                fimm.Exec(nodestring+".subnodes["+str(sameprojname)+"].delete")
             else: 
                 '''change the name of this new node'''
                 if warn: print "WARNING: Node name `" + self.name + "` already exists;"
@@ -435,19 +445,23 @@ class Node(object):
         parent_node.children.append(self)
         
     def delete(self):
+        fimm.Exec(  "%s.delete()"%(self.nodestring)  )
+        '''
         if self.parent is None:
             fimm.Exec("app.subnodes[{"+str(self.num)+"}].delete()")
         else:
             fimm.Exec("app.subnodes[{"+str(self.parent.num)+"}].subnodes[{"+str(self.num)+"}].delete()")
+        '''
             
 #end class Node
 
             
             
 class Project(Node):
-    """Return a new Fimmwave Project, with incremented node number.
+    """Return a new Fimmwave Project.
     Project inherits from the Node class. 
     DEPRECATED: Arguments are passed to the Node class constructor - type help('pyFIMM.Node') for available arguments.
+    The Project node is only built in FimmWave when you call `ProjectObj.buildNode()`.
     
     Please type `dir(ProjectObj)` or `help(ProjectObj)` to see all the attributes and methods available.
     
@@ -474,7 +488,7 @@ class Project(Node):
     
     num : int, number of this node in FimmWave
     
-    nodestring : string, to access this node in FimmWave.  Eg. `app.subnodes[5].`, including trailing period `.`.
+    nodestring : string, to access this node in FimmWave.  Eg. `app.subnodes[5]`, omitting trailing period `.`.
     
     savepath : string, the path to file for the project.
     
@@ -558,7 +572,7 @@ class Project(Node):
         #end if(self.name already exists) aka. len(sameprojname)
         """
         
-        nodestring = "app."     # the top-level
+        nodestring = "app"     # the top-level
         self.name, samenodenum = check_node_name( self.name, nodestring=nodestring, overwrite=overwrite, warn=warn )  # get modified nodename & nodenum of same-named Proj, delete/rename existing node if needed.
         
         
@@ -567,13 +581,13 @@ class Project(Node):
         node_num = int(N_nodes)+1
         fimm.Exec("app.addsubnode(fimmwave_prj,"+str(self.name)+")")
         self.num = node_num
-        self.nodestring = "app.subnodes[%i]." % self.num
+        self.nodestring = "app.subnodes[%i]" % self.num
         self.savepath = None
         self.built = True
     #end buildNode()
     
     
-    def savetofile(self, path=None, overwrite=False):
+    def save_to_file(self, path=None, overwrite=False):
         '''savetofile(path): 
         Save the Project to a file.  Path is subsequently stored in `Project.savepath`. 
         
@@ -582,18 +596,19 @@ class Project(Node):
         path : string, optional
             Relative (or absolute?) path to file.  ".prj" will be appended if it's not already present.
             If not provided, will assume the Project has been saved before, and will save to the same path (you should set `overwrite=True` in this case).
+            
         overwrite : { True | False }, optional
-            Overwrite existing file?  False by default.  Will error with "FileExistsError" if this is false & file already exists.
+            Overwrite existing file?  False by default.  Will error with "FileExistsError" if this is False & file already exists.
         '''
         
         if path == None:
             if self.savepath:
                 path = self.savepath
             else:
-                ErrStr = 'Project.savetofile(): path not provided, and project does not have `savepath` set (has never been saved before).  Please provide a path to save file.'
+                ErrStr = self.name + '.savetofile(): path not provided, and project does not have `savepath` set (has never been saved before).  Please provide a path to save file.'
                 raise ValueError(ErrStr)
         
-        if path.split('.')[-1] != 'prj':    path = path + '.prj'    # append '.prj' if needed
+        if not path.endswith('.prj'):    path = path + '.prj'    # append '.prj' if needed
         
         if os.path.exists(path) and overwrite: 
             print self.name + ".savetofile(): WARNING: File `" + os.path.abspath(path) + "` will be overwritten."
@@ -603,7 +618,7 @@ class Project(Node):
         elif os.path.exists(path) and not overwrite:
             raise IOError(self.name + ".savetofile(): File `" + os.path.abspath(path) + "` exists.  Use parameter `overwrite=True` to overwrite the file.")
         else:
-            fimm.Exec("app.subnodes[{"+str(self.num)+"}].savetofile(" + path + ")")
+            fimm.Exec(   "%s.savetofile"%(self.nodestring) + "(%s)"%(path)   )
             self.savepath = os.path.abspath(path)
             print self.name + ".savetofile(): Project `" + self.name + "` saved to file at: ", os.path.abspath(self.savepath)
         #end if(file exists/overwrite)
@@ -667,7 +682,7 @@ def import_project(filepath, name=None, overwrite=False, warn=True):
         prjname = name
     
     
-    nodestring = "app."
+    nodestring = "app"
     newprjname, samenodenum = check_node_name( prjname, nodestring=nodestring, overwrite=overwrite, warn=warn )  # get modified nodename & nodenum of same-named Proj, delete/rename existing node if needed.
     
     """
@@ -676,7 +691,7 @@ def import_project(filepath, name=None, overwrite=False, warn=True):
         if overwrite:
             '''delete the offending identically-named node'''
             if warn: print "Overwriting existing Node #" + str(samenodenum) + ", '%s'." % prjname
-            fimm.Exec(nodestring+"subnodes["+str(samenodenum)+"].delete")
+            fimm.Exec(nodestring+".subnodes["+str(samenodenum)+"].delete")
             newprjname = prjname    #use orig name
     #end if(project already exists)
     """
@@ -694,10 +709,10 @@ def import_project(filepath, name=None, overwrite=False, warn=True):
     prj.num = node_num
     prj.built = True
     prj.savepath = savepath
-    prj.name = strip_txt(  fimm.Exec(  "app.subnodes[%i].nodename "%(prj.num)  )  )
-    
+    prj.nodestring = "app.subnodes[%i]"%(prj.num)
+    prj.name = strip_txt(  fimm.Exec(  "%s.nodename "%(prj.nodestring)  )  )
     prj.origin = 'fimmwave'
-    prj.nodestring = "app.subnodes[%i]."%(prj.num)
+    
     
     
     return prj

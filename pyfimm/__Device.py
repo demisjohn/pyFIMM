@@ -54,7 +54,7 @@ class Device(Node):
         FimmWave Node number for this device
     
     nodestring : string
-        String used to access this Device node in fimmwave, for example: "app.subnodes[1].subnodes[3]."
+        String used to access this Device node in fimmwave, for example: "app.subnodes[1].subnodes[3]"
     
     elementpos : list
         List containing integers, indicating position (eltlist[position]) that each element was inserted into in the fimmwave Device.
@@ -110,7 +110,7 @@ class Device(Node):
         self.input_field_left, self.input_field_right = 0,0     # input fields
         self.__wavelength = get_wavelength()    # get global wavelength
         self.__inc_field = None     # incident/input field - DEPRECATED
-
+        self.elementpos = self.jointpos = []
 
         if len(args) == 1:
             self.lengths = []
@@ -155,7 +155,7 @@ class Device(Node):
     def get_origin(self):
         '''Return 'pyfimm' if this Device was constructed in pyFIMM, or 'fimm' if the Device was constructed in FimmProp.
         Dev's constructed in pyFIMM will have a list of elements, which reference pyFIMM waveguide objects etc.  Dev's constructed in FimmProp will not have such properties, but can take advantage of FimmProp's GUI construction, etch/grow paths and other functionality not achievable in pyFIMM.'''
-        return self.__origin
+        return self.origin
     
     def get_length(self):
         '''Return summed lengths of contained elements - total length of this Device.'''
@@ -1193,22 +1193,25 @@ class Device(Node):
         Add optional argument `buildNode = True`, which will build all passed WG objects while adding them to the Device.
             
         '''
-        if name: self.name = name
-        if parent: self.parent = parent
+        if self.built: raise UserWarning(  'Device "%s".buildNode(): Device is already built in FimmWave!  Aborting.'%(self.name)  ) 
         
-        parent.children.append(self)
+        if name: self.name = name
+        if parent: self.set_parent(parent)
+        
+        #parent.children.append(self)
         
         '''
-        nodestring="app.subnodes["+str(self.parent.num)+"]."
+        nodestring="app.subnodes["+str(self.parent.num)+"]"
         self._checkNodeName(nodestring, overwrite=overwrite, warn=warn)     # will alter the node name if needed
         '''
         
         #nodestring = parent.nodestring
-        check_node_name(self.name, parent.nodestring, overwrite=overwrite, warn=warn)
+        check_node_name(self.name, self.parent.nodestring, overwrite=overwrite, warn=warn)
         
         self.jointpos = []    # eltlist[] position of simple joints
         self.elementpos = []  # eltlist[] position of each waveguide element
-        N_nodes = fimm.Exec("app.subnodes["+str(self.parent.num)+"].numsubnodes")
+        #N_nodes = fimm.Exec("app.subnodes["+str(self.parent.num)+"].numsubnodes")
+        N_nodes = fimm.Exec( self.parent.nodestring+".numsubnodes")
         node_num = int(N_nodes)+1
         self.num = node_num
         prj_num = self.parent.num
@@ -1732,28 +1735,50 @@ def import_device( project, fimmpath):
     
     dev = Device()      # new pyFIMM Device object
     dev.elements = dev.num = None
-    dev.parent = project
+    dev.set_parent( project )
     dev.origin = 'fimmwave'   # Device was constructed in FimmProp, not pyFIMM
     dev.name = fimmpath.split('/')[-1]      # get the last part of the path
     
-    devname = "DevExt_%i" %(  get_next_refnum()  )  # generate dev reference name
+    devname = "Device_%i" %(  get_next_refnum()  )  # generate dev reference name
     # create fimmwave reference to the Device:
-    if DEBUG(): print "Ref& %s = "%(devname) + project.nodestring + "findnode(%s)"%(fimmpath)
-    ret = fimm.Exec( "Ref& %s = "%(devname) + project.nodestring + "findnode(%s)"%(fimmpath)   )
+    if DEBUG(): print "Ref& %s = "%(devname) + project.nodestring + ".findnode(%s)"%(fimmpath)
+    ret = fimm.Exec( "Ref& %s = "%(devname) + project.nodestring + ".findnode(%s)"%(fimmpath)   )
     ret = strip_txt( ret )
     if DEBUG(): print "\tReturned:\n%s"%(ret)
     dev.nodestring = devname    # use this to reference the device in Fimmwave
     
     ret = strip_txt(  fimm.Exec( '%s.objtype'%(dev.nodestring) )  )
     if ret != 'FPDeviceNode':
-        ErrStr = "The referenced node `%s` is not a FimmProp Device or couldn't be found!\n\t"%(fimmpath) + "Instead got object type `%s`."%(ret)
+        ErrStr = "The referenced node `%s` is not a FimmProp Device or couldn't be found!\n\t"%(fimmpath) + "FimmWave returned object type of:\n\t`%s`."%(ret)
         raise ValueError(ErrStr)
     
     dev.built = True
     
-    # populate elementpos & jointpos:
+    # Populate device parameters:
+    # elementpos & jointpos:
     # populate lengths:
-    pass
+    dev.__wavelength = fimm.Exec(  "%s.lambda"%(dev.nodestring)  )
+    if DEBUG(): print dev.name + ".__wavelength = ", dev.__wavelength, str(type(dev.__wavelength))
+    
+    els = strip_array(   fimm.Exec( "%s.cdev.eltlist"%(dev.nodestring) )    )    # get list of elements
+    if DEBUG(): print "els =", els
+    
+    for   i, el    in enumerate(els):
+        elnum=i+1
+        objtype = strip_text(    fimm.Exec(  "%s.cdev"%(dev.nodestring) + ".eltlist[%i].objtype"%(elnum)  )    )
+        if objtype.lower().endswith('joint'):
+            dev.jointpos.append(elnum)
+        elif objtype == 'FPRefSection':
+            ''' This element references another '''
+            refpos = fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].getrefid()"%(elnum)  )
+            if DEBUG(): print "Element %i is reference --> Element %i."%(elnum, refpos)
+            dev.elementpos.append( refpos )     # Append the position of the Original!
+            dev.lengths.append(  fimm.Exec( dev.nodestring + ".cdev.eltlist[%i].length"%(refpos)  )    )
+            if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
+        elif objtype.lower().endswith('section'):
+            dev.elementpos.append(elnum)
+            dev.lengths.append(  fimm.Exec( dev.nodestring + ".cdev.eltlist[%i].length"%(elnum)  )    )
+            if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
     
     '''
     Let FimMWave find the node for us:
@@ -1799,6 +1824,17 @@ app.subnodes[1].subnodes[3].cdev.eltlist[2].objtype
 
 >>> pf.Exec("app.subnodes[1].subnodes[3].cdev.eltlist[2].objtype")
 'FPsimpleJoint'
+
+
+### FOr referenced section:
+Device_187734.cdev.eltlist[3].objtype
+    FPRefSection
+    
+Device_187734.cdev.eltlist[3].length
+    could not find item "Device_187734.cdev.eltlist[3].length"
+    
+Device_187734.cdev.eltlist[3].getrefid()
+    1
     '''
     
     return dev

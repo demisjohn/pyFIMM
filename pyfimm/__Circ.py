@@ -356,7 +356,7 @@ class Circ(Node):
         if name: self.name = name
         if parent: self.parent = parent
         
-        nodestring="app.subnodes["+str(self.parent.num)+"]."
+        nodestring="app.subnodes["+str(self.parent.num)+"]"
         self._checkNodeName(nodestring, overwrite=overwrite, warn=warn)     # will alter the node name if needed
         
         N_nodes = fimm.Exec("app.subnodes["+str(self.parent.num)+"].numsubnodes")

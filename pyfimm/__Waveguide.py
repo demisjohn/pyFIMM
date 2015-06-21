@@ -62,7 +62,7 @@ class Waveguide(Node):
     
     nodestring : string
         The fimmwave string pointing to this waveguide's node.  eg. "app.subnodes[1].subnodes[3]"
-        Does not have a trailing period.
+        Omits the trailing period.
 
     
     
@@ -409,7 +409,7 @@ class Waveguide(Node):
         if parent: self.parent = parent
         if DEBUG(): print "Waveguide.buildNode(): self.parent.num=", self.parent.num
         
-        nodestring="app.subnodes["+str(self.parent.num)+"]."
+        nodestring="app.subnodes["+str(self.parent.num)+"]"
         self._checkNodeName(nodestring, overwrite=overwrite, warn=warn)     # will alter the node name if needed
         
         N_nodes = fimm.Exec("app.subnodes["+str(self.parent.num)+"].numsubnodes")
