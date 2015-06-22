@@ -335,7 +335,7 @@ class Device(Node):
         
         if side == None:
             side='lhs'  # default value if unset
-            if warn: print "WARNING: Device " + self.name + ".set_inc_field(): set to Left-Hand-Side input, since unspecified."
+            if warn: print "WARNING: Device '%s'.set_input_field():"%self.name + " set to Left-Hand-Side input, since unspecified."
         else:
             side = side.lower().strip()     # make lower case, strip whitespace
         
@@ -346,7 +346,7 @@ class Device(Node):
             sidestr = 'rhs'
             self.input_field_right = amplitude_list
         else:
-            ErrStr = "Device " + self.name + ".set_input_field(): Unsupported side passed: `" + str(side) + "`.  \n\tPlease use 'Left' or 'Right', or see `help(pyfimm.Device.set_input_field)`."
+            ErrStr = "Device ''.set_input_field(): "%self.name + "Unsupported side passed: `" + str(side) + "`.  \n\tPlease use 'Left' or 'Right', or see `help(pyfimm.Device.set_input_field)`."
             if DEBUG(): print "side.lower() = ", side.lower()
             raise ValueError(ErrStr)
 
@@ -641,12 +641,25 @@ class Device(Node):
         `cont` is the handle to the contourf() plot (filled-contour).
         
         '''
+        
+        side = side.lower().strip()
+        if side == 'left' or side == 'l' or side == 'lhs':
+            sidestr = 'lhs'
+            n=1     # 1st element
+            if amplitude_list is None:  amplitude_list = self.input_field_left
+        elif side == 'right' or side == 'r' or side == 'rhs':
+            sidestr = 'rhs'
+            n = self.elementpos[-1]     # last element
+            if amplitude_list is None:  amplitude_list = self.input_field_right
+            
+            
         field = self.get_input_field(component=component, amplitude_list=amplitude_list, side=side, include_pml=include_pml)
         
         if title:
             plot_title = title + " - %s=%s" %(side, amplitude_list)
         else:
             plot_title = '"%s": ' % self.name  +  "%s=%s" %(side, amplitude_list)
+        
         
         # Options for the subplots:
         sbkw = {'axisbg': (0.15,0.15,0.15)}    # grey plot background
@@ -656,19 +669,34 @@ class Device(Node):
         fig.canvas.draw()  # update the figure
         
         # generate X & Y coords:
-        x = range( np.shape(field)[1] )
-        y = range( np.shape(field)[0] )
+        modestring = self.nodestring + ".cdev.eltlist[%i]"%(n) + ".get%sevlist"%(sidestr) + ".list[1].profile.data"
+        d = get_amf_data( modestring )
+        
+        if DEBUG(): 
+            import pprint
+            print "Device.plot_input_field():  get_amf_data() returned:"
+            pprint.pprint(d)
+        
+        x = np.linspace( d['xmin'], d['xmax'], num=d['nx'], endpoint=True )
+        y = np.linspace( d['ymin'], d['ymax'], num=d['ny'], endpoint=True )
+        
+        if DEBUG(): print "(x, y) = ", x, y
+        
+        #x = range( np.shape(field)[1] )
+        #y = range( np.shape(field)[0] )
         
         if DEBUG(): print "Dev.plot_input_field(): min/max(field) = %f/%f" % (np.min(np.array(field).real), np.max(np.array(field).real))
         maxfield = np.max(   np.abs(  np.array(field).real  )   )
         
         if plot_type is 'pseudocolor':
-            cont = ax.pcolor( np.array(x), np.array(y), np.array(field) , vmin=-maxfield, vmax=maxfield, cmap=cm_hotcold)      # cm_hotcold, cm.hot, RdYlBu, RdPu, RdBu, PuOr, 
+            cont = ax.pcolor( np.array(x), np.array(y), np.array(field)[:-1,:-1] , vmin=-maxfield, vmax=maxfield, cmap=cm_hotcold)      # cm_hotcold, cm.hot, RdYlBu, RdPu, RdBu, PuOr, 
         elif plot_type is 'contourf':
-            cont = ax.contourf( np.array(x), np.array(y), np.array(field) , vmin=-maxfield, vmax=maxfield, cmap=cm_hotcold)      # cm_hotcold, cm.hot, RdYlBu, RdPu, RdBu, PuOr, 
+            cont = ax.contourf( np.array(x), np.array(y), np.array(field)[:-1,:-1] , vmin=-maxfield, vmax=maxfield, cmap=cm_hotcold)      # cm_hotcold, cm.hot, RdYlBu, RdPu, RdBu, PuOr, 
         else:
             ErrStr = 'Device "%s".plot_input_field(): ' % self.name + 'Unrecognized plot_type: `%s`. ' % plot_type + 'Please use `contour` or `psuedocolor` or leave unsepcified.'
             raise ValueError( ErrStr )
+        ax.set_xlim( d['xmin'], d['xmax'] )
+        ax.set_ylim( d['ymin'], d['ymax'] )
         fig.canvas.draw()
         
         if return_handles: return fig, ax, cont

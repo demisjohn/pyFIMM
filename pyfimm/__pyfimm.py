@@ -1600,3 +1600,263 @@ def get_temperature():
     except NameError:
         global_temperature = None
     return global_temperature
+#end get_temperature
+
+
+def get_amf_data(modestring, filename="temp", precision=r"%10.6f", maxbytes=500):
+    '''Return the various mode profile data from writing an AMF file.
+    This returns data for all field components of a mode profile, the start/end x/y values in microns, number of data points along each axis and some other useful info.
+    The AMF file and accompanying temporary files will be saved into the directory designated by the variable `AMF_Folder_Str()`, which is typically something like "pyFIMM_temp/".
+    Temporary files are created in order to extract the commented lines.
+    This function currently does NOT return the field vlaues, as they are much more efficiently acquired by the FimMWave functions get_field()
+    
+    Parameters
+    ----------
+    modestring : str
+        The entire FimmWave string required to produce the amf file, omitting the ".writeamf(...)" function itself, typically a reference to the individual mode to be output.  An example would be:
+            app.subnodes[7].subnodes[1].evlist.list[1].profile.data
+    
+    filename : str, optional
+        Desired filename for the AMF-file &  output.
+    
+    precision : str, optional
+        String passed to the FimmWave function `writeamf()` to determine output precision of field values, as a standard C-style format string.  Defaults to "%10.6f", specifying a floating point number with minimum 10 digits and 6 decimal points.
+    
+    maxbytes : int, optional
+        How many bytes to read from the AMF file.  This prevents reading all the field data, and speeds up execution/memory usage.  Defaults to 500 bytes, which typically captures the whole AMF file header info.
+    
+    
+    Returns
+    -------
+    A dictionary is returned containing each value found in the AMF file header.
+    {'beta': (5.980669+0j),     # Beta (propagation constant), as complex value
+     'hasEX': True,             # does the AMF file contain field values for these components?
+     'hasEY': True,
+     'hasEZ': True,
+     'hasHX': True,
+     'hasHY': True,
+     'hasHZ': True,
+     'isWGmode': True,          # is this a waveguide mode?
+     'iscomplex': False,        # are the field values (and Beta) complex?
+     'lambda': 1.55,            # wavelength
+     'nx': 100,                 # Number of datapoints in the x/y directions
+     'ny': 100,
+     'xmax': 14.8,              # x/y profile extents, in microns
+     'xmin': 0.0,
+     'ymax': 12.1,
+     'ymin': 0.0}
+    
+    Examples
+    --------
+    >>> ns = "app.subnodes[7].subnodes[1].evlist.list[1].profile.data"
+    >>> fs = "pyFIMM_temp\mode1_pyFIMM.amf"
+    >>> data = pf.get_amf_data(ns, fs)
+    
+    '''
+    
+    
+    
+    '''
+  100 100 //nxseg nyseg
+    0.000000      14.800000       0.000000      12.100000  //xmin xmax ymin ymax
+  1 1 1 1 1 1 //hasEX hasEY hasEZ hasHX hasHY hasHZ
+    6.761841       0.000000  //beta
+    1.550000  //lambda
+  0 //iscomplex
+  1 //isWGmode
+    '''
+    import re   # RegEx module
+    
+    # write an AMF file with all the field components.
+    if not filename.endswith(".amf"):  filename += ".amf"   # name of the files
+    
+    # SubFolder to hold temp files:
+    if not os.path.isdir(str( AMF_FolderStr() )):
+        os.mkdir(str( AMF_FolderStr() ))        # Create the new folder if needed
+    mode_FileStr = os.path.join( AMF_FolderStr(), filename )
+    
+    if DEBUG(): print "Mode.plot():  " + modestring + ".writeamf("+mode_FileStr+",%s)"%precision
+    fimm.Exec(modestring + ".writeamf("+mode_FileStr+",%s)"%precision)
+
+    ## AMF File Clean-up
+    #import os.path, sys  # moved to the top
+    fin = open(mode_FileStr, "r")
+    if not fin: raise IOError("Could not open '"+ mode_FileStr + "' in " + sys.path[0] + ", Type: " + str(fin))
+    #data_list = fin.readlines()        # put each line into a list element
+    data_str = fin.read( maxbytes )     # read file as string, up to maxbytes.
+    fin.close()
+    
+    out = {}    # the data to return, as dictionary
+    
+    ''' Grab the data from the header lines '''
+    # how much of the data to search (headers only):
+    s = [0, 2000]   # just in case the entire file gets read in later, to grab field data
+    # should disable this once we know we don't need the AMF field data
+    
+    # Set regex pattern to match:
+    '''  100 100 //nxseg nyseg'''
+    pat = re.compile(     r'\s*(\d+)\s*(\d+)\s*//nxseg nyseg'  )
+    m = pat.search(  data_str[s[0]:s[1]]  )      # perform the search
+    # m will contain any 'groups' () defined in the RegEx pattern.
+    if m:
+        print 'segment counts found:', m.groups()   #groups() prints all captured groups
+        nx = int( m.group(1) )	# grab 1st group from RegEx & convert to int
+        ny = int( m.group(2) )
+        print '(nx, ny) --> ', nx, ny
+    out['nx'],out['ny'] = nx, ny
+
+    # Set regex pattern to match:
+    '''    0.000000      14.800000       0.000000      12.100000  //xmin xmax ymin ymax'''
+    pat = re.compile(     r'\s*(\d+\.?\d*)\s*(\d+\.?\d*)\s*(\d+\.?\d*)\s*(\d+\.?\d*)\s*//xmin xmax ymin ymax'  )
+    m = pat.search(  data_str[s[0]:s[1]]  )      # perform the search
+    # m will contain any 'groups' () defined in the RegEx pattern.
+    if m:
+        print 'window extents found:',m.groups()    #groups() prints all captured groups
+        xmin = float( m.group(1) )	# grab 1st group from RegEx & convert to int
+        xmax = float( m.group(2) )
+        ymin = float( m.group(3) )
+        ymax = float( m.group(4) )
+        print '(xmin, xmax, ymin, ymax) --> ', xmin, xmax, ymin, ymax
+    out['xmin'],out['xmax'],out['ymin'],out['ymax'] =  xmin, xmax, ymin, ymax
+
+    # Set regex pattern to match:
+    '''  1 1 1 1 1 1 //hasEX hasEY hasEZ hasHX hasHY hasHZ'''
+    pat = re.compile(     r'\s*(\d)\s*(\d)\s*(\d)\s*(\d)\s*(\d)\s*(\d)\s*//hasEX hasEY hasEZ hasHX hasHY hasHZ'  )
+    m = pat.search(  data_str[s[0]:s[1]]  )      # perform the search
+    # m will contain any 'groups' () defined in the RegEx pattern.
+    if m:
+        print 'components found:',m.groups()    #groups() prints all captured groups
+        hasEX = bool( int(m.group(1)) )	# grab 1st group from RegEx & convert to int
+        hasEY = bool( int(m.group(2)) )
+        hasEZ = bool( int(m.group(3)) )
+        hasHX = bool( int(m.group(4)) )
+        hasHY = bool( int(m.group(5)) )
+        hasHZ = bool( int(m.group(6)) )
+        print '(hasEX, hasEY, hasEZ, hasHX, hasHY, hasHZ) --> ', hasEX, hasEY, hasEZ, hasHX, hasHY, hasHZ
+    out['hasEX'],out['hasEY'],out['hasEZ'],out['hasHX'],out['hasHY'],out['hasHZ'] \
+        = hasEX, hasEY, hasEZ, hasHX, hasHY, hasHZ
+
+    # Set regex pattern to match:
+    '''    6.761841       0.000000  //beta'''
+    pat = re.compile(     r'\s*(\d+\.?\d*)\s*(\d+\.?\d*)\s*//beta'  )
+    m = pat.search(  data_str[s[0]:s[1]]  )      # perform the search
+    # m will contain any 'groups' () defined in the RegEx pattern.
+    if m:
+        print 'beta found:',m.groups()    #groups() prints all captured groups
+        beta_r = float( m.group(1) )	# grab 1st group from RegEx & convert to int
+        beta_i = float( m.group(2) )
+        beta = beta_r + beta_i*1j
+        print 'beta --> ', beta
+    out['beta'] = beta
+
+    # Set regex pattern to match:
+    '''    1.550000  //lambda'''
+    pat = re.compile(     r'\s*(\d+\.?\d*)\s*//lambda'  )
+    m = pat.search(  data_str[s[0]:s[1]]  )      # perform the search
+    # m will contain any 'groups' () defined in the RegEx pattern.
+    if m:
+        print 'lambda found:',m.groups()    #groups() prints all captured groups
+        lam = float( m.group(1) )	# grab 1st group from RegEx & convert to int
+        print 'lambda --> ', lam
+    out['lambda'] =  lam 
+
+
+    # Set regex pattern to match:
+    '''  0 //iscomplex'''
+    pat = re.compile(     r'\s*(\d)\s*//iscomplex'  )
+    m = pat.search(  data_str[s[0]:s[1]]  )      # perform the search
+    # m will contain any 'groups' () defined in the RegEx pattern.
+    if m:
+        print 'iscomplex found:',m.groups()    #groups() prints all captured groups
+        iscomplex = bool( int(m.group(1)) )	# grab 1st group from RegEx & convert to int
+        print 'iscomplex --> ', iscomplex
+    out['iscomplex'] =  iscomplex 
+
+    # Set regex pattern to match:
+    '''  1 //isWGmode'''
+    pat = re.compile(     r'\s*(\d)\s*//isWGmode'  )
+    m = pat.search(  data_str[s[0]:s[1]]  )      # perform the search
+    # m will contain any 'groups' () defined in the RegEx pattern.
+    if m:
+        print 'isWGmode found:',m.groups()    #groups() prints all captured groups
+        isWGmode = bool( int(m.group(1)) )	# grab 1st group from RegEx & convert to int
+        print 'isWGmode --> ', isWGmode
+    out['isWGmode'] =  isWGmode
+
+
+
+    
+    
+    return out
+    
+    """
+    # Delete File Header
+    nxy_data = data_list[1]
+    xy_data = data_list[2]
+    slvr_data = data_list[6]
+    del data_list[0:9]
+    
+    # strip the comment lines from the nxy file:
+    nxyFile = os.path.join( AMF_FolderStr(), "mode" + str(num) + "_pyFIMM_nxy.txt")
+    fout = open(nxyFile, "w")
+    fout.writelines(nxy_data)
+    fout.close()
+    nxy = pl.loadtxt(nxyFile, comments='//')
+    nx = int(nxy[0])
+    ny = int(nxy[1])
+    
+    xyFile = os.path.join( AMF_FolderStr(), "mode" + str(num) + "_pyFIMM_xy.txt")
+    fout = open(xyFile, "w")
+    fout.writelines(xy_data)
+    fout.close()
+    xy = pl.loadtxt(xyFile, comments='//')
+    
+    slvrFile = os.path.join( AMF_FolderStr(), "mode" + str(num) + "_pyFIMM_slvr.txt")
+    fout = open(slvrFile, "w")
+    fout.writelines(slvr_data)
+    fout.close()
+    iscomplex = pl.loadtxt(slvrFile, comments='//')
+
+    # Find Field Component
+    if field_cpt_in == None:
+        '''If unspecified, use the component with higher field frac.'''
+        tepercent = fimm.Exec(self.modeString + "list[{" + str(num) + "}].modedata.tefrac")
+        if tepercent > 50:
+            field_cpt = 'Ex'.lower()
+        else:
+            field_cpt = 'Ey'.lower()
+    #end if(field_cpt_in)
+    
+    if field_cpt == 'Ex'.lower():
+        data = data_list[1:nx+2]
+    elif field_cpt == 'Ey'.lower():
+        data = data_list[(nx+2)+1:2*(nx+2)]
+    elif field_cpt == 'Ez'.lower():
+        data = data_list[2*(nx+2)+1:3*(nx+2)]
+    elif field_cpt == 'Hx'.lower():
+        data = data_list[3*(nx+2)+1:4*(nx+2)]
+    elif field_cpt == 'Hy'.lower():
+        data = data_list[4*(nx+2)+1:5*(nx+2)]
+    elif field_cpt == 'Hz'.lower():
+        data = data_list[5*(nx+2)+1:6*(nx+2)]
+    else:
+        ErrStr = 'Invalid Field component requested: ' + str(field_cpt)
+        raise ValueError(ErrStr)
+    
+    del data_list
+    
+    # Resave Files
+    fout = open(mode_FileStr+"_"+field_cpt.strip().lower(), "w")
+    fout.writelines(data)
+    fout.close()
+    
+    # Get Data
+    if iscomplex == 1:
+        field_real = pl.loadtxt(mode_FileStr, usecols=tuple([i for i in range(0,2*ny+1) if i%2==0]))
+        field_imag = pl.loadtxt(mode_FileStr, usecols=tuple([i for i in range(0,2*ny+2) if i%2!=0]))
+    else:
+        field_real = pl.loadtxt(mode_FileStr)
+    """
+
+
+#end get_amf_data()

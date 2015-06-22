@@ -806,8 +806,6 @@ class Mode:
         
         ims = []
         for n, num   in   enumerate(self.list_num):
-            if DEBUG(): print "Mode.plot():  " + self.modeString+"list[" + str(num) + "].profile.data.writeamf("  + AMF_FolderStr() + "/modeXYZ_pyFIMM.amf,%10.6f)"
-            
             # Which axis to draw on:
             if len(self.list_num) == 1:
                 '''only single plot'''
@@ -826,6 +824,7 @@ class Mode:
                 os.mkdir(str( AMF_FolderStr() ))        # Create the new folder
             mode_FileStr = os.path.join( AMF_FolderStr(), mode_FileStr )
             
+            if DEBUG(): print "Mode.plot():  " + self.modeString+"list[" + str(num) + "].profile.data.writeamf("+mode_FileStr+",%10.6f)"
             fimm.Exec(self.modeString+"list[" + str(num) + "].profile.data.writeamf("+mode_FileStr+",%10.6f)")
 
             ## AMF File Clean-up
@@ -891,6 +890,7 @@ class Mode:
             del data_list
             
             # Resave Files
+            mode_FileStr = mode_FileStr+"_"+field_cpt.strip().lower()
             fout = open(mode_FileStr, "w")
             fout.writelines(data)
             fout.close()
@@ -925,6 +925,7 @@ class Mode:
                 
                 n_str = "$\mathregular{n_{eff} =}$ %0.5f"%(nmodes[n].real)
                 axis.text( 0.05, 0.9, n_str, transform=axis.transAxes, horizontalalignment='left', color='green', fontsize=9, fontweight='bold')
+            fig1.canvas.window().raise_()    # bring plot window to front
             fig1.canvas.draw()  # update the figure
         #end for(list_num)
         
@@ -933,7 +934,8 @@ class Mode:
         ax1.set_ylabel('y ($\mu$m)')
         ax1.set_title(  self.obj.name + ": Mode(" + str(self.modenum) + "): " + field_cpt.title()  )
         '''
-        fig1.canvas.draw()
+        #fig1.canvas.window().raise_()    # bring plot window to front
+        #fig1.canvas.draw()
         fig1.show()
         
         

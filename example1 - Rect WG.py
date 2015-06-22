@@ -47,8 +47,10 @@ pf.connect()    # connect to the FimmWave application, which must already runnin
 
 
 # Set global Parameters (Your copy of FIMMWAVE has default values for these. You can change more than shown here. See `dir(pyfimm)`, `help(pyfimm)`, or open the file `pyFIMM/__pyfimm.py`
-import sys
-pf.set_working_directory(sys.path[0])     # Set this directory to the location of your script, which is given by sys.path[0]
+import sys, os
+ScriptPath, ScriptFile = os.path.split( os.path.realpath(__file__)  )                    # Get directory of this script
+
+pf.set_working_directory(ScriptPath)     # Set this directory to the location of your script, which is usually given by sys.path[0]
 pf.set_eval_type('n_eff')    # FIMMWAVE will label modes by the effective index (options: n_eff or beta)
 pf.set_mode_finder_type('stable')   # options: stable or fast
 pf.set_mode_solver('vectorial FMM real')    # Three words, any permuation of: 'vectorial/semivecTE/semivecTM FDM/FMM real/complex'
@@ -107,6 +109,9 @@ strip.mode(0).plot()        # Plot the fundamental mode with python!
 strip.mode('all').plot(title='Strip WG: All Modes')    # plot all the calc'd modes (3 in this case) on one figure 
 
 
+ns = "app.subnodes[7].subnodes[1].evlist.list[1].profile.data"
+fs="mode1_pyFIMM.amf"
+pf.get_amf_data(ns, fs)
 #strip.delete()         # delete FIMMWAVE nodes if you want to!
 #wg_prj.delete()
 
