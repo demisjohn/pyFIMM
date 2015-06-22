@@ -6,11 +6,12 @@ from __pyfimm import *      # import the main module (should already be imported
 from __globals import *         # import global vars & FimmWave connection object
 # DEBUG() variable is also set in __globals
 
+''' Moved into __globals.py:
 from __Waveguide import *   # rectangular waveguide class
 from __Circ import *        # cylindrical (fiber) waveguide class
 from __Tapers import *      # import Taper/WGLens classes
 from __Mode import Mode     # import Mode class
-
+'''
 
 
 import numpy as np      # array math etc.
@@ -107,10 +108,12 @@ class Device(Node):
         self.name = None
         self.calculated= False   # has this Device been calculated yet?
         self.built=False        # has the Dev been build in FimmProp?
-        self.input_field_left = self.input_field_right = None     # input fields
+        self.input_field_left = None     # input fields
+        self.input_field_right = None
         self.__wavelength = get_wavelength()    # get global wavelength
         self.__inc_field = None     # incident/input field - DEPRECATED
-        self.elementpos = self.jointpos = []
+        self.elementpos = []    # positions in eltlist[] of each element/joint
+        self.jointpos = []
 
         if len(args) == 1:
             self.lengths = []
@@ -147,7 +150,16 @@ class Device(Node):
     def __len__(self):
         '''Number of elements in this Device.'''
         return len(self.elements)    
-        
+    
+    def __call__(self):
+        '''Calling a Device object creates a Section of passed length, and returns a list containing this new Section.
+            Usually passed directly to Device as so:
+            >>> NewDevice = pyfimm.Device(  DeviceObj() + WG2(1.25) + WG3(10.5)  )
+        '''
+        # Instantiate a Section obj with 1 args
+        out = [   Section(  self  )   ]
+        return out
+    
     def __add__(self, other):
         '''To Do: Allow devices to be added together, concatenating their elements.'''
         raise Error("Device addition currently unsupported.")
@@ -1278,7 +1290,7 @@ class Device(Node):
         for ii,el in enumerate(self.elements):
             elnum = elnum+1
             
-            
+
             if isinstance(  el, Taper  ):
                 '''I am not testing the Taper at all - not sure if this actually works.
                 But keeping it here just in case it does.'''
@@ -1288,7 +1300,7 @@ class Device(Node):
                 self.elementpos.append(elnum)
                 # Set the WG length:
                 fpString += self.nodestring + ".cdev.eltlist["+str(elnum)+"].length="+str(self.lengths[ii]) + "  \n"
-                
+            
             elif isinstance( el, Lens ):
                 '''The Lens object will be a Waveguide Lens type of element.'''
                 if DEBUG(): print "Device.buildNode():  type = Lens"
@@ -1298,7 +1310,7 @@ class Device(Node):
                 
             else:
                 '''For all waveguide elements, add the previously built WG Node to this Device:'''
-                if DEBUG(): print "Device.buildNode(): %i: type(el)=%s, name=%s"%(ii, str(type(el)), el.name)
+                
                 if el.built != True:
                     '''If the WG was not previously built, tell it to build itself.  '''
                     try:
@@ -1307,6 +1319,8 @@ class Device(Node):
                     except:
                         errstr = "Error while building Device Node `"+self.name+"`: \nA constituent waveguide could not be built. Perhaps try building all waveguide nodes via `WGobj.buildNode()` before building the Device."
                         raise RuntimeError(errstr)
+                
+                if DEBUG(): print "Device.buildNode(): %i: type(el)=%s, name=%s"%(ii, str(type(el)), el.name)
                 
                 # Add the waveguide node into this Device:
                 #   (assumes WG Node is in the root-level of this FimmWave Project)
@@ -1727,53 +1741,84 @@ class Device(Node):
 
 
 
-
-
 # Create new Device objects by importing from another Project:
-def import_device( project, fimmpath):
-    '''Return a new Device object from within an existing Project.
-    The Project should have been created in pyFIMM beforehand.  To grab a Device from a file, use `pyFIMM.import_Project()` to generate the Project from a file, and then call `import_Device()` referencing that Project.
-    Device.get_origin() will return 'fimm' for this new Device - it will not load the elements and waveguides used in the Device's construction.
-    
+def __import_device( self, project, fimmpath, name=None, overwrite=False, warn=True ):
+    '''Add a new Device object to this Project from another pyFIMM Project.
+    The Project should have been created in pyFIMM beforehand.  To grab a Device from a file, use `newprj = pyFIMM.import_Project()` to generate the Project from a file, and then call `newprj.import_Device()`.
+    To ensure the imported Device can reference the needed Waveguides/Slabs from the original Project, it is best if the required waveguide/slab nodes are subnodes of the original device - they will then be copied automatically into the new Project (just copy/paste the nodes into the Device Node, and use `DevNode.cdev.eltlist[<num>].setswg( "<pathToSWG>" )` to change the reference).  Or use the function `Project.import_Node()`.
+    import_device() will not load the elements and waveguides used in the Device's construction.  This is to enable the use of the many complex element types available in FimmProp that aren't supported by pyFIMM - for example etch/grow paths, various types of joints etc.  These specialized elements/joints won't be inspected by pyFIMM, but you can still connect your Device to other elements, launch/retrieve fields etc. via pyFIMM.
+    Device.get_origin() will return 'fimm' for this new Device, indicating that the elements it contains will not point to pyFIMM waveguide objects.
+
+    Note that if your Device references other waveguide types in the Project, they can't be copied into your project automatically unless they reside as a subnode under the Device node being copied.
+
+
+    Parameters
+    ----------
     project : pyFIMM Project object
         Specify the pyFIMM Project from which to acquire the Device.
-    
+
     fimmpath : string
         The FimmProp path to the Device, within the specified project.  This takes the form of something like "Dev1" if the device named "DevName" is at the top-level of the FimmProp Project, or "DevName/SubDevName" is SubDevName is under another Device node.
-    
+
+    name : string, optional
+    Optionally provide a name for the new Project node in Fimmwave.  If omitted, the Project name save in the file will be used.
+
+    overwrite : { True | False }, optional
+        If True, will overwrite an already-open Fimmwave project that has the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.  False by default.
+
+    warn : { True | False }, optional
+        Print or suppress warnings when nodes will be overwritten etc.  True by default.
+
+
+    Parameters of the returned Device are a bit different from one generated entirely by pyFIMM, as detialed below:
     Please type `dir(DeviceObj)` or `help(DeviceObj)` to see all the attributes and methods available.
-    
     
     Attributes
     ----------
     The returned Device object will most of the same attributes as a standard pyFIMM Device object, with the following exceptions:
     
+    DevObj.origin : { 'fimmwave' }
+        This indicates that this Device was Not constructed by pyFIMM, and so has a slightly lacking set of attributes (detailed further in this section).  A normally-constructed pyFIMM Device has the value 'pyfimm'.
+    
     DevObj.num : nonexistent
         Instead, use the attribute `DevObj.nodestring` to reference the device object in FimmWave.
-    
-    DevObj.elements : nonexistent
+
+    DevObj.elements : (empty list)
         To allow for all the various Element construction methods available in FimmWave (eg. etch/grow paths etc.), pyFIMM will not populate the elements list of the imported Device.
-        However, `.elementpos` and `.jointpos` will be populated properly so that you can differentiate between joints and waveguide elements.
+        However, `.elementpos` and `.jointpos` will be populated properly so that you can differentiate between joints and waveguide elements.  Note that Free-Space joints will be added to `*.elementpos` despite being in the "joints" section of the FimmProp GUI, because they have a length and are thus more appropriately treated as finite-length elements.
     
+    DevObj.elementpos : list
+        List of element positions (used in FimmProp's `DevNode.cdev.eltlist[%i]`) for referencing a particular element.  Elements that are references will have an entry corresponding to the original element.
+        
+    DevObj.lengths : list
+        The length, in microns, of each element that can have a length (these elements are referenced in `DevObj.elementpos`).  Unsupported elements, such as the WGLens (which don't have a simple calculation of length) will have a `None` entry in the list.
     
-    
+    DevObj.jointpos : list
+        List of positions (used in FimmProp's `DevNode.cdev.eltlist[%i]`) of joints that have no length, eg. Simple-Joints, IO-Sections.
+
+
+
     Examples
     --------
     To open a Device from a file, import the project file first:
-    >> prj = pyfimm.import_project('T:\Python Work\pyFIMM Simulations\example4 - WG Device 1.prj', overwrite=True)
-    Create Device from that Project:
-    >>> DevObj = pyfimm.import_device( prj,  "Name Of My Device In The Project" )
-    The string as actually a FimmWave path, so could reference subnodes like "ParentDev/TheDeviceIWant".
-    
+        >> prj = pyfimm.import_project( 'C:\pyFIMM Simulations\example4 - WG Device 1.prj' )
+    Create a new Device from within that Project:
+        >>> DevObj = pyfimm.import_device( prj,  "Name Of My Device In The Project" )
+    The string "Name Of..." as actually a FimmWave path, so could reference subnodes like "ParentDev/TheDeviceIWant".
+
     '''
-    if DEBUG(): print "import_device( %s, %s )"%(project.name, fimmpath)
     
+    '''Note that `self` will be a Project object, once this function is added to the Project object's methods'''
+    
+    if DEBUG(): print "import_device( %s, %s )"%(project.name, fimmpath)
+
     dev = Device()      # new pyFIMM Device object
-    dev.elements = dev.num = None
+    dev.elements = None
+    dev.num = None
     dev.set_parent( project )
     dev.origin = 'fimmwave'   # Device was constructed in FimmProp, not pyFIMM
     dev.name = fimmpath.split('/')[-1]      # get the last part of the path
-    
+
     devname = "Device_%i" %(  get_next_refnum()  )  # generate dev reference name
     # create fimmwave reference to the Device:
     if DEBUG(): print "Ref& %s = "%(devname) + project.nodestring + ".findnode(%s)"%(fimmpath)
@@ -1781,82 +1826,106 @@ def import_device( project, fimmpath):
     ret = strip_txt( ret )
     if DEBUG(): print "\tReturned:\n%s"%(ret)
     dev.nodestring = devname    # use this to reference the device in Fimmwave
-    
+
     ret = strip_txt(  fimm.Exec( '%s.objtype'%(dev.nodestring) )  )
     if ret != 'FPDeviceNode':
         ErrStr = "The referenced node `%s` is not a FimmProp Device or couldn't be found!\n\t"%(fimmpath) + "FimmWave returned object type of:\n\t`%s`."%(ret)
         raise ValueError(ErrStr)
     
+    # copy the Device into this project:
+    #   update device's references:
+    dev.set_parent(self)
+    N_nodes = fimm.Exec(self.nodestring+".numsubnodes")
+    dev.num = int(N_nodes)+1
+    dev.nodestring = self.nodestring + ".subnodes[%i]"%(dev.num)
+    #   check node name, overwrite existing Dev if needed, modify dev's name:
+    dev.name, samenodenum = check_node_name( dev.name, nodestring=self.nodestring, overwrite=overwrite, warn=warn )    
+    fimm.Exec( dev.nodestring + ".copy()" )
+    fimm.Exec( self.nodestring + '.paste( "%s" )'%(dev.name)  )
+    
+    
+    
+    
     dev.built = True
     
+    
     # Populate device parameters:
-    # elementpos & jointpos:
-    # populate lengths:
     dev.__wavelength = fimm.Exec(  "%s.lambda"%(dev.nodestring)  )
     if DEBUG(): print dev.name + ".__wavelength = ", dev.__wavelength, str(type(dev.__wavelength))
-    
+
     els = strip_array(   fimm.Exec( "%s.cdev.eltlist"%(dev.nodestring) )    )    # get list of elements
     if DEBUG(): print "els =", els
-    
+
     for   i, el    in enumerate(els):
         elnum=i+1
         objtype = strip_text(    fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].objtype"%(elnum)  )    )
-        if objtype.lower().endswith('joint'):
+        if objtype.strip()=='FPsimpleJoint' or objtype == 'FPioSection':
+            '''SimpleJoints,IOports have no length'''
+            if DEBUG(): print "Element %i is Joint: %s"%(elnum, objtype)
             dev.jointpos.append(elnum)
         elif objtype == 'FPRefSection':
             ''' This element references another element '''
-            refpos = fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].getrefid()"%(elnum)  )
+            refpos = int( fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].getrefid()"%(elnum)  )  )
             if DEBUG(): print "Element %i is reference --> Element %i."%(elnum, refpos)
             dev.elementpos.append( refpos )     # Append the position of the Original!
             dev.lengths.append(  fimm.Exec( dev.nodestring + ".cdev.eltlist[%i].length"%(refpos)  )    )
             if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
-        elif objtype.lower().endswith('section'):
-            ''' Regular waveguide section '''
+        elif objtype.lower().endswith('section') or objtype.strip() == 'FPtaper' or objtype.strip() == 'FPfspaceJoint' or objtype.strip() == 'FPbend':
+            ''' Regular Section with a `*.length` attribute, including regular WG/Planar Sections'''
+            if DEBUG(): print "Element %i is Section of type: %s"%(elnum, objtype)
             dev.elementpos.append(elnum)
             dev.lengths.append(  fimm.Exec( dev.nodestring + ".cdev.eltlist[%i].length"%(elnum)  )    )
             if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
         else:
-            print "Element %i: "%(elnum) + "Unsupported Element Type:", objtype
+            '''Eg. Lens =  FPWGLens; can't get the length simply'''
+            print "WARNING: Element %i: "%(elnum) + "Unsupported Element Type:", objtype
             dev.elementpos.append(elnum)
+            dev.lengths.append( None )
+    
+        #if DEBUG(): print "%i: elementpos = ", dev.elementpos, "   & jointpos = ", dev.jointpos
+    #end for(elements)
+    
+    
+    
     '''
     Let FimMWave find the node for us:
     Ref& R = app.subnodes[1].findnode(WG Device) - no quotes!
-    
+
     R.objtype
     FPDeviceNode
-    
+
     Do need to distinguish the elements,
         - which are joints (jointpos) and which are elements
         - in Dev.elements, insert dummy-Section?  When interrogates, returns Warning "Loaded form external file"
     determine each element's length
     determine total device length
     Do NOT look inside each element - obviates ability to make paths etc.
-    
+
     Var wg=app.subnodes[1].subnodes[3].cdev.getwg(0)
     could not find item "Var wg"
-    
+
 app.subnodes[1].subnodes[3].cdev.getwg(0)
 app.subnodes[1].subnodes[3].cdev.eltlist
-    
+
          eltlist[1]     
          eltlist[2]     
          eltlist[3]     
-    
+
 app.subnodes[1].subnodes[3].cdev.eltlist[3].length
     15
-    
+
 app.subnodes[1].subnodes[3].cdev.eltlist[2].length
     could not find item "app.subnodes[1].subnodes[3].cdev.eltlist[2].length"
-    
+
 app.subnodes[1].subnodes[3].cdev.eltlist[1].length
     10
-    
+
 >>> pf.Exec("app.subnodes[1].subnodes[3].cdev.eltlist")
 [None, 'eltlist[1]', 'eltlist[2]', 'eltlist[3]']
 
 app.subnodes[1].subnodes[3].cdev.eltlist[1].objtype
     FPWGsection
-    
+
 app.subnodes[1].subnodes[3].cdev.eltlist[2].objtype
     FPsimpleJoint
 
@@ -1867,16 +1936,26 @@ app.subnodes[1].subnodes[3].cdev.eltlist[2].objtype
 ### FOr referenced section:
 Device_187734.cdev.eltlist[3].objtype
     FPRefSection
-    
+
 Device_187734.cdev.eltlist[3].length
     could not find item "Device_187734.cdev.eltlist[3].length"
-    
+
 Device_187734.cdev.eltlist[3].getrefid()
     1
-    '''
+
+###################
+
+    # import into the project:
+    Device_187734.copy()
+
+    NewProj{aka. self}.nodestring + '.paste("%s")'%(Device_187734.name)
     
+    !!!-->  Update nodenumber of Device & nodestring  (always pasted at end)
+    
+    '''
+
     return dev
 #end import_device()
 
-# Alias to the same function:
-import_Device = import_device
+# Alias to the same function, added to the Project object:
+Project.import_device = __import_device

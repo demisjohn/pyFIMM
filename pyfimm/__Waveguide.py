@@ -3,12 +3,12 @@
 #from pylab import *     # must kill these global namespace imports!
 #from numpy import *
 
-from __pyfimm import *       # import the main module (should already be imported), includes many 'rect' classes/funcs
 
 from __globals import *         # import global vars & FimmWave connection object
 
-from __Mode import *            # import Mode class
 
+from __pyfimm import *       # import the main module (should already be imported), includes many 'rect' classes/funcs
+from __Mode import Mode            # import Mode class
 from numpy import inf           # infinity, for hcurv/bend_radius
 
 
@@ -227,9 +227,15 @@ class Waveguide(Node):
     def __call__(self,length):
         '''Calling a WG object with one argument creates a Section of passed length, and returns a list containing this new Section.
             Usually passed directly to Device as so:
-            >>> Device(  WG1(10.5) + WG2(1.25) + WG3(10.5)  )
+            >>> NewDevice = pyfimm.Device(  WG1(10.5) + WG2(1.25) + WG3(10.5)  )
+            
+            Parameters
+            ----------
+            length : float
+                Pass a length (microns). This will be applied to the returned Section Object, which will also contain a reference to this waveguide object.
         '''
-        # Always call Section with 1 args
+
+        # Instantiate a Section obj with 2 args
         out = [   Section(  self, length  )   ]
         return out
 

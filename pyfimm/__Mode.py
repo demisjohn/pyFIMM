@@ -1,5 +1,10 @@
 '''Mode class, part of pyFIMM.'''
 
+
+from __globals import *     # import global vars & FimmWave connection object
+    # also contains AMF_FolderStr(), DEBUG()
+
+''' Moved into __globals.py:
 #from pylab import *     # must kill these global namespace imports!!!
 #from numpy import *
 import pylab as pl
@@ -10,11 +15,8 @@ import math
 
 import os  # for filepath manipulations (os.path.join/os.mkdir/os.path.isdir)
 
-from __globals import *     # import global vars & FimmWave connection object
-    # also contains AMF_FolderStr(), DEBUG()
-
 from __pyfimm import get_N, get_wavelength
-
+'''
 #AMF_FileStr = 'pyFIMM_temp'
 
 

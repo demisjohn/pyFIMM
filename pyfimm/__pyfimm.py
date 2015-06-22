@@ -35,6 +35,8 @@ Also in this file are the pyFIMM global parameters - set_wavelength, set_N etc. 
 
 
 from __globals import *         # import global vars & FimmWave connection object `fimm`
+print "**** __pyfimm.py: Finsihed importing __globals.py"
+
 
 import numpy as np
 import datetime as dt   # for date/time strings
@@ -627,6 +629,8 @@ class Project(Node):
     
 #end class(Project)
 
+# Note!  Project.import_device() is added in the file __Device.py, for cyclic import reasons!
+
 
 def import_project(filepath, name=None, overwrite=False, warn=True):
     '''Import a Project from a file.  
@@ -1103,16 +1107,17 @@ class Slice:
 
 class Section:
     '''Section( WGobject, length)
-    Section class applies a Length to a Waveguide object.
+    Section class applies a Length to a Waveguide object.  This object is only used when creating a new pyFIMM Device object, and is usually invisible to the end-user.
     This is so that a Device can reference the same WG multiple times, but with a different length each time.
     Usually not created manually, but instead returned when user passes a length to a WG (Waveguide or Circ) object.
     
     Parameters
     ----------
-    WGobject : Waveguide or Circ object
-        Waveguide or Circ object, previously built.
+    WGobject : Waveguide, Circ or Device object
+        Waveguide, Circ or Device object, previously built.
+        
     length : float
-        length of this WG, when inserted into Device.
+        length of this WG, when inserted into Device.  Required for Waveguide or Circ objects, not required for Device objects.
         
     To Do:
     ------
@@ -1127,17 +1132,28 @@ class Section:
     '''
     
     def __init__(self, *args):
+        if len(args) == 0:
+            '''return empty object'''
+            self.WG = None
+            self.length = None
         if len(args) == 1:
+            '''Only Waveguide/Device passed.  Device.__call__ uses this case'''
             #if DEBUG(): print "Section: 1 args=\n", args
             self.WG = args[0]
-            self.length = 0
+            try:
+                self.length = self.WG.get_length()
+            except AttributeError:
+                ErrStr = "Section.__init__(): The specified Waveguide/Device has no method `get_length()`.  Please pass a Waveguide, Circ or Device (or similar, eg. Lens) object that has a length.\n\tGot args = " + str(args)
+                raise AttributeError(ErrStr)
         elif len(args) == 2:
+            '''WG & length passed.  Waveguide/Circ.__call__ use this case.'''
             #if DEBUG(): print "-- Section: 2 args=\n", args
             self.WG = args[0]
             self.length = args[1]
         else:
-            raise ValueError("Invalid number of arguments to Section().")
-    
+            raise ValueError( "Invalid number of arguments to Section().  args=" + str(args) )
+        
+        
     def __str__(self):
         '''How to `print` this object.'''
         string='Section object (of pyFIMM module).'
