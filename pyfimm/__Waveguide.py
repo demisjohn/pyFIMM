@@ -3,12 +3,12 @@
 #from pylab import *     # must kill these global namespace imports!
 #from numpy import *
 
-from __pyfimm import *       # import the main module (should already be imported), includes many 'rect' classes/funcs
 
 from __globals import *         # import global vars & FimmWave connection object
 
-from __Mode import *            # import Mode class
 
+from __pyfimm import *       # import the main module (should already be imported), includes many 'rect' classes/funcs
+from __Mode import Mode            # import Mode class
 from numpy import inf           # infinity, for hcurv/bend_radius
 
 
@@ -62,7 +62,7 @@ class Waveguide(Node):
     
     nodestring : string
         The fimmwave string pointing to this waveguide's node.  eg. "app.subnodes[1].subnodes[3]"
-        Does not have a trailing period.
+        Omits the trailing period.
 
     
     
@@ -227,9 +227,15 @@ class Waveguide(Node):
     def __call__(self,length):
         '''Calling a WG object with one argument creates a Section of passed length, and returns a list containing this new Section.
             Usually passed directly to Device as so:
-            >>> Device(  WG1(10.5) + WG2(1.25) + WG3(10.5)  )
+            >>> NewDevice = pyfimm.Device(  WG1(10.5) + WG2(1.25) + WG3(10.5)  )
+            
+            Parameters
+            ----------
+            length : float
+                Pass a length (microns). This will be applied to the returned Section Object, which will also contain a reference to this waveguide object.
         '''
-        # Always call Section with 1 args
+
+        # Instantiate a Section obj with 2 args
         out = [   Section(  self, length  )   ]
         return out
 
@@ -369,7 +375,7 @@ class Waveguide(Node):
         
         if self.built:
             self.__wavelength = float(wl)
-            fimm.Exec(  self.nodestring + ".lambda = " + str(self.__wavelength) + "   \n"  )
+            fimm.Exec(  self.nodestring + ".evlist.svp.lambda = " + str(self.__wavelength) + "   \n"  )
         else:
             self.__wavelength = float(wl)
     
@@ -409,7 +415,7 @@ class Waveguide(Node):
         if parent: self.parent = parent
         if DEBUG(): print "Waveguide.buildNode(): self.parent.num=", self.parent.num
         
-        nodestring="app.subnodes["+str(self.parent.num)+"]."
+        nodestring="app.subnodes["+str(self.parent.num)+"]"
         self._checkNodeName(nodestring, overwrite=overwrite, warn=warn)     # will alter the node name if needed
         
         N_nodes = fimm.Exec("app.subnodes["+str(self.parent.num)+"].numsubnodes")
@@ -417,9 +423,10 @@ class Waveguide(Node):
         self.num = node_num    
         
         # make RWG node:
-        wgString = "app.subnodes["+str(self.parent.num)+"].addsubnode(rwguideNode,"+str(self.name)+")"+"\n"
+        #wgString = "app.subnodes["+str(self.parent.num)+"].addsubnode(rwguideNode,"+str(self.name)+")"+"\n"
+        wgString = self.parent.nodestring + ".addsubnode(rwguideNode,"+str(self.name)+")"+"\n"
         
-        self.nodestring = "app.subnodes["+str(self.parent.num)+"].subnodes["+str(self.num)+"]"
+        self.nodestring = self.parent.nodestring + ".subnodes["+str(self.num)+"]"
         
         fimm.Exec(  wgString + self.get_buildNode_str(self.nodestring, warn=warn)  ) 
         #self.BuildRectNode()  
@@ -777,7 +784,7 @@ class Waveguide(Node):
                 raise ValueError( ErrStr )
         
         # Set wavelength:
-        wgString += self.nodestring + ".lambda = " + str( self.get_wavelength() ) + "   \n"
+        wgString += self.nodestring + ".evlist.svp.lambda = %f \n"%(self.get_wavelength() )
         
         wgString += solverString
         

@@ -36,8 +36,10 @@ import pyfimm as pf   # Every script must begin with this line
 pf.connect()        # this connects to the FimmWave application.  The FimmWave program should already be open (pdPythonLib.StartApplication() is not supported yet)
 
 # Set Parameters (Your copy of FIMMWAVE has default values for these. You can change more than shown here. See __jaredwave.py
-import sys
-ScriptPath = sys.path[0]                    # Get directory of this script
+import sys, os
+ScriptPath, ScriptFile = os.path.split( os.path.realpath(__file__)  )                    # Get directory of this script
+
+pf.set_working_directory(ScriptPath)     # Set this directory to the location of your script
 pf.set_working_directory(ScriptPath)       # Set FimmWave directory to the location of your script (needed to capture output files)
 pf.set_eval_type('n_eff')                  # FIMMWAVE will label modes by the effective index (options: n_eff or beta)
 pf.set_mode_finder_type('stable')          # options: stable or fast
@@ -114,8 +116,6 @@ fig.savefig('Example 2 - Two Modes with Prop Const.png')
 
 
 
-
-
 # Create a second waveguide that is identical but with 6.5um wider core:
 
 strip2 = pf.Waveguide( side(w_side) + center(w_core+6.5) + side(w_side) )
@@ -140,10 +140,9 @@ dev.buildNode(name='WG Device', parent=wg_prj)  # same as the above three lines
 
 
 # View fields in the device
-dev.set_input_field( [1,0,0] )  # Set to launch Mode #0 only
+dev.set_input( [1,0,0] )  # Set to launch Mode #0 only
 dev.plot('I')   # plot the intensity versus Z.
 dev.plot('Ex', direction='-z', title='Reflected (-z) field')  # Plot reflected wave only
-
 
 #wg_prj.savetofile('rectdev with mat db')   # save the project to a file.  '.prj' will be appended.
 #wg_prj.delete()        # Delete the whole project!

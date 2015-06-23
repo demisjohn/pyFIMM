@@ -163,7 +163,7 @@ class CavityMode(object):
         direction = string { 'fwd', 'bwd', 'total' }, case insensitive, optional
             DISABLED - now chosen based on LHS or RHS input.
             Which field propagation direction to plot.  Defaults to 'total'.
-            Note that the propagation direction should match up with which side the input field was launched.  Eg. for `set_input_field([1,0,0], side="left")` you'll want to use `direction="fwd"`.
+            Note that the propagation direction should match up with which side the input field was launched.  Eg. for `set_input([1,0,0], side="left")` you'll want to use `direction="fwd"`.
             Synonyms for 'fwd' include 'forward' & 'f'.
             Synonyms for 'bwd' include 'backward' & 'b'.
             Synonyms for 'total' include 'tot' & 't'.
@@ -261,13 +261,13 @@ class CavityMode(object):
             
                 # Launch this eigenvector:
                 norm = False
-                self.Cavity.RHS_Dev.set_input_field( EigVec, side='left', normalize=norm )
-                self.Cavity.RHS_Dev.set_input_field( np.zeros(  get_N() ), side='right' )   # no input from other side
+                self.Cavity.RHS_Dev.set_input( EigVec, side='left', normalize=norm )
+                self.Cavity.RHS_Dev.set_input( np.zeros(  get_N() ), side='right' )   # no input from other side
                 
                 # Get mode vector reflected from RHS device & launch it into LHS dev, to accomplish one roundtrip
                 vec = self.Cavity.RHS_Dev.get_output_vector(side='left', direction='left')
-                self.Cavity.LHS_Dev.set_input_field( vec, side='right', normalize=norm )
-                self.Cavity.LHS_Dev.set_input_field( np.zeros(  get_N() ), side='left' )   # no input from other side
+                self.Cavity.LHS_Dev.set_input( vec, side='right', normalize=norm )
+                self.Cavity.LHS_Dev.set_input( np.zeros(  get_N() ), side='left' )   # no input from other side
 
                 
                 # Get field values:
@@ -616,13 +616,13 @@ class CavityMode(object):
                 
                 # Launch this eigenvector:
                 norm = False    # normalize the launch vectors?  V.Brulis said to disable this
-                self.Cavity.RHS_Dev.set_input_field( EigVec, side='left', normalize=norm )
-                self.Cavity.RHS_Dev.set_input_field( np.zeros(  get_N() ), side='right' )   # no input from other side
+                self.Cavity.RHS_Dev.set_input( EigVec, side='left', normalize=norm )
+                self.Cavity.RHS_Dev.set_input( np.zeros(  get_N() ), side='right' )   # no input from other side
                 
                 # Get mode vector reflected from RHS device & launch it into LHS dev, to accomplish one roundtrip
                 vec = self.Cavity.RHS_Dev.get_output_vector(side='left', direction='left')
-                self.Cavity.LHS_Dev.set_input_field( vec, side='right', normalize=norm )
-                self.Cavity.LHS_Dev.set_input_field( np.zeros(  get_N() ), side='left' )   # no input from other side
+                self.Cavity.LHS_Dev.set_input( vec, side='right', normalize=norm )
+                self.Cavity.LHS_Dev.set_input( np.zeros(  get_N() ), side='left' )   # no input from other side
 
                 
                 # Get field values:

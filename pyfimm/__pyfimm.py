@@ -35,11 +35,13 @@ Also in this file are the pyFIMM global parameters - set_wavelength, set_N etc. 
 
 
 from __globals import *         # import global vars & FimmWave connection object `fimm`
+print "**** __pyfimm.py: Finsihed importing __globals.py"
+
 
 import numpy as np
 import datetime as dt   # for date/time strings
 import os.path      # for path manipulation
-
+import random       # random number generators
 
 
 
@@ -85,37 +87,169 @@ def Exec(string, vars=[]):
         if out[-2:] == '\n\x00': out = out[:-2]     # strip off FimmWave EOL/EOF chars.
     return out
 
-def striptxt(string):
+def strip_txt(FimmString):
     '''Remove the EOL characters from FimmWave output strings.'''
-    if string[-2:] == '\n\x00': out = string[:-2]     # strip off FimmWave EOL/EOF chars.
-    return string
+    junkchars = '\n\x00'    # characters to remove
+    if FimmString.endswith(junkchars): out = FimmString.strip( junkchars )     # strip off FimmWave EOL/EOF chars.
+    return out
 
-def striparray(array):
-    '''Remove EOL & 'None' elements of a returned array.'''
+# Alias for the same function:
+strip_text = striptxt = strip_txt
 
-def checkNodeName( name, level=0 ):
-    ''' See if the project name exists in FimmWave, and return a modified project name (with ms time-stamp) if it exists.
-    level=0 means top-level (project names only).  This is currently the only supported mode.  Eventually could support checking names of subnodes.'''
-    if level==0: nodestring = "app."    # top-level
-    N_nodes = int(  fimm.Exec(nodestring+"numsubnodes")  )
+def strip_array(FimmArray):
+    '''Remove EOL & 'None' elements of a returned list or array.'''
+    print "WARNING: strip_array Incomplete!"
+    if  isinstance( FimmArray,  list ):
+        if  FimmArray[0]  is None:  out = FimmArray[1:]     # omit 1st 'None' element
+    return out
+    
+
+def check_node_name( name, nodestring="app", overwrite=False, warn=True ):
+    ''' See if the node name already exists in FimmWave, and return a modified project name (with random numbers appended) if it exists.
+    
+    Parameters
+    ----------
+    name : string
+        The name to check.  `name` will be checked against all the node-names at the specified level.
+    
+    nodestring : string, optional
+        Specifies the node to check for an existing node name.  Defaults to "app.", which means you're checking top-level Project names.  If, instead, `nodestring = app.subnodes[1].` then you're checking node names within the 1st project in FimmWave.
+    
+    warn : { True | False }, optional
+        Print a warning if the node name exists?  Defaults to True.
+    
+    overwrite : { True | False }, optional
+        If True, will try to delete an already-loaded Fimmwave project that has the same name in Fimmwave.  Will only delete the node if it is the last in the node list (This prevents breaking pyFIMM references to FimmWave Projects). Otherwise, the new FimmWave node will have it's name changed. If False, will append random digits to supplied project name and return it in `nodename`.  False by default.
+    
+    Returns
+    -------
+    nodename : str
+        New name for the node.  If the original `name` existed in the specified node list, `nodename` will have random digits appended to the name.  Otherwise, it will be left untouched, and be identical to the provided `name`.  Thus, if `nodename != name` then the node `name` already exists in the FimmWave node list.  The modified name will have the form `OrigNodeName.123456`.
+    
+    sameprojnum : int
+        Node Number of the offending identically-named node.  
+        Thus the FimmWave command `nodestring + ".subnodes[ nodenum ].delete` will delete the existing node with the same name.
+        
+        
+    Examples
+    --------
+    Get modified nodename & nodenum of same-named Proj, delete/rename existing node if needed.
+    >>> nodestring = "app"
+    >>> newprjname, samenodenum = check_node_name( prjname, nodestring=nodestring, overwrite=False, warn=True )  
+    Create the new node with returned name, which was modified if needed:
+    >>> fimm.Exec(    "app.addsubnode(fimmwave_prj," + str(  newprjname  ) + ")"    )
+    
+    Do the same, but with `overwrite=True`, ensuring that the name we specify will be used.
+    >>> prjname = "My New Project"
+    >>> check_node_name( prjname, nodestring="app", overwrite=True )  
+    >>> fimm.Exec(    "app.addsubnode(fimmwave_prj," + str(  prjname  ) + ")"    )
+    
+    '''
+    N_nodes = int(  fimm.Exec(nodestring+".numsubnodes")  )
     SNnames = []    #subnode names
     for i in range(N_nodes):
-        SNnames.append(  fimm.Exec(nodestring+r"subnodes["+str(i+1)+"].nodename").strip()[:-2]  )   
+        SNnames.append(  strip_txt(  fimm.Exec(nodestring+r".subnodes["+str(i+1)+"].nodename")  )  )   
         # trim whitespace via string's strip(), strip the two EOL chars '\n\x00' from end via indexing [:-2]
     # check if node name is in the node list:
-    sameprojname = np.where( np.array(SNnames) == np.array([name]) )[0]
+    sameprojidx = np.where( np.array(SNnames) == np.array([name]) )[0]
     #if DEBUG(): print "Node._checkNodeName(): [sameprojname] = ", sameprojname, "\nSNnames= ", SNnames
-    if len( sameprojname  ) > 0:
+    if len( sameprojidx  ) > 0:
         '''if identically-named node was found'''
-        '''change the name of this new node'''
         if warn: print "WARNING: Node name `" + name + "` already exists;"
-        name += dt.datetime.now().strftime('.%f')   # add current microsecond to the name
-        print "\tNode name changed to: ", name
+        sameprojname = SNnames[sameprojidx]
+        sameprojidx = sameprojidx[0]+1  # FimmWave index to the offending node
+        if overwrite:
+            if sameprojidx == N_nodes:
+                '''It is the last node entry, so delete the offending identically-named node'''
+                if warn: print "node '%s'.buildNode(): Deleting existing Node # %s"%(name,str(sameprojidx)) + ", `%s`."%(sameprojname)
+                fimm.Exec( nodestring + ".subnodes[%i].delete"%(sameprojidx) )
+            else:
+                '''It is not the last entry in the node list, so we can't delete it without breaking other pyFIMM references.'''
+                # change the name of offending node:
+                newname = name + "." +str( get_next_refnum() )
+                if warn: print "node '%s'.buildNode(): Renaming existing Node #"%(name)  +  str(sameprojidx) + ", `%s` --> `%s`."%(sameprojname, newname)
+                fimm.Exec( nodestring + ".subnodes[%i].rename( "%(sameprojidx) + newname + " )"  )
+        else:
+            '''change the name of this new node'''
+            name += "." +str( get_next_refnum() )       #dt.datetime.now().strftime('.%f')   # add current microsecond to the name
+            if warn: print "\tNew Node name changed to: ", name
     else:
-        if DEBUG(): print "Node name is unique."
+        if DEBUG(): print "Node name `%s` is unique." % name
         pass
-    return name
-    #end if(name already exists) aka. len(sameprojname) )
+    return name, sameprojidx
+#end checknodename()
+
+
+def get_next_refnum():
+    '''Returns a 6-digit random number to use for naming new FimmWave references/nodes.  Will ensure that a duplicate is never returned.  All used values are stored in the pyFIMM global variable `global_refnums`.'''
+    global global_refnums
+    try:
+        global_refnums
+    except NameError:
+        global_refnums = []     # default value if unset
+    
+    cont, i =  1,1
+    while cont == 1:
+        ''' If random number `r` is already in the global list, make a new one '''
+        r = random.randint(100000,999999)   # 6-digit random number
+        if len( np.where(  np.array(global_refnums) == np.array([r]) )[0]  ) == 0:
+            ''' If random number `r` is not in the global list, continue '''
+            cont = 0    # stop the loop
+        
+        # make sure the loop doesn't run away, in case the used has made 1 million objects!
+        i = i+1
+        if i > 1000:
+            cont = 0
+            raise UserWarning("Could not generate a random number after 1000 iterations! Aborting...")
+    # end while(cont)
+    
+    global_refnums.append(  r  )
+    return global_refnums[-1]   # return last random number
+#end get_next_refnum()
+
+
+def close_all(warn=True):
+    '''Close all open Projects, discarding unsaved changes.
+    
+    Parameters
+    ----------
+    warn : { True | False }, optional
+        True by default, which will prompt user for confirmation.
+    '''
+    nodestring="app"   # top-level, deleting whole Projects
+    N_nodes = int(  fimm.Exec(nodestring+".numsubnodes")  )
+    
+    wstr = "Will close" if warn else "Closing"
+    
+    WarnStr = "WARNING: %s all the following open Projects,\n\tdiscarding unsaved changes:\n"%(wstr)
+    SNnames = []    #subnode names
+    for i in range(N_nodes):
+        SNnames.append(  strip_txt(  fimm.Exec(nodestring+r".subnodes["+str(i+1)+"].nodename")  )  )   
+        WarnStr = WarnStr + "\t%s\n"%(SNnames[-1])
+    
+    print WarnStr
+    
+    if warn:
+        # get user confirmation:
+        cont = raw_input("Are you sure? [y/N]: ").strip().lower()
+    else:
+        cont = 'y'
+    
+    if cont == 'y':
+        fString = ''
+        for i in range(N_nodes):
+            fString += nodestring + ".subnodes[1].close()\n"
+        fimm.Exec( fString )
+    else:
+        print "close_all(): Cancelled."
+#end close_all()
+    
+    
+
+
+####################################
+#   Fimmwave Global Parameters  ####
+####################################
 
 def set_working_directory(wdir):
     '''Set FimmWave working directory. Usually set to same dir as your Python script in order to find FimmWave output files.'''
@@ -190,53 +324,43 @@ class Node(object):
         Node('NameOfNode', NodeNumber)
         Node('NameOfNode', NodeNumber, ParentNodeObject)
         Node('NameOfNode', NodeNumber, ParentNodeObject, Children)
-        
+    """
+    """
         If 'NameOfNode' already exists, the name will be modified by adding a random number to the end as ".123456".
         The modified name can be found in the variable: `Node.name`
         if the keyword argument `overwrite=True` is provided, then an existing Node with the same name will be deleted upon building."""
     def __init__(self,*args, **kwargs):
-        if len(args) == 0:
+        if len(args) >= 0:
             self.name = 'Fimmwave Node ' + dt.datetime.now().strftime("%Y-%m-%d %H.%M.%S")
             self.num = 0
             self.parent = None
             self.children = []
             self.type = None
             self.savepath = None
-        elif len(args) == 1:
+            self.nodestring = None
+        
+        if len(args) == 1:
             self.name = args[0]
-            self.num = 0
-            self.parent = None
-            self.children = []
-            self.type = None
-            self.savepath = None
         elif len(args) == 2:
             self.name = args[0]
             self.num = args[1]
-            self.parent = None
-            self.children = []
-            self.type = None
-            self.savepath = None
         elif len(args) == 3:
             self.name = args[0]
             self.num = args[1]
             self.parent = args[2]
-            self.children = []
-            self.type = None
-            self.savepath = None
         elif len(args) == 4:
             self.name = args[0]
             self.num = args[1]
             self.parent = args[2]
             self.children = args[3]
-            self.type = None
-            self.savepath = None
-        else:
+        elif len(args) >= 5:
             print 'Invalid number of input arguments to Node()'
         
         
-        overwrite = kwargs.pop('overwrite', False)  # to overwrite existing project of same name
-        warn = kwargs.pop('warn', True)     # display warning is overwriting?
+        #overwrite = kwargs.pop('overwrite', False)  # to overwrite existing project of same name
+        #warn = kwargs.pop('warn', True)     # display warning is overwriting?
         
+        """
         ## Check if top-level node name conflicts with one already in use:
         #AppSubnodes = fimm.Exec("app.subnodes")        # The pdPythonLib didn't properly handle the case where there is only one list entry to return.  Although we could now use this function, instead we manually get each subnode's name:
         N_nodes = int(  fimm.Exec("app.numsubnodes")  )
@@ -258,12 +382,14 @@ class Node(object):
             else: 
                 '''change the name of this new node'''
                 if warn: print "WARNING: Node name `" + self.name + "` already exists;"
-                self.name += dt.datetime.now().strftime('.%f')   # add current microsecond to the name
+                self.name += "." +str( get_next_refnum() )  #dt.datetime.now().strftime('.%f')   # add current microsecond to the name
                 print "\tNode name changed to: ", self.name
             #end if(overwrite)
         else:
             if DEBUG(): print "Node name is unique."
         #end if(self.name already exists aka. len(sameprojname)
+        """
+        
         
         if kwargs:
             '''If there are unused key-word arguments'''
@@ -274,14 +400,24 @@ class Node(object):
             print ErrStr
     #end __init__()
     
+    
+    
     def _checkNodeName(self, nodestring, overwrite=False, warn=True):
-        '''Check for duplicate node name, overwrite if desired.'''
+        '''Check for duplicate node name, overwrite if desired.
+        
+        nodestring : string
+            string to reference the FimmWave node, omitting trailing period.  eg. 
+                app.subnodes[1].subnoes[3]
+        
+        overwrite : { True | False }, optional
+        warn : { True | False }, optional
+            '''
         ## Check if top-level node name conflicts with one already in use:
         #AppSubnodes = fimm.Exec("app.subnodes")        # The pdPythonLib didn't properly handle the case where there is only one list entry to return.  Although we could now use this function, instead we manually get each subnode's name:
-        N_nodes = int(  fimm.Exec(nodestring+"numsubnodes")  )
+        N_nodes = int(  fimm.Exec(nodestring+".numsubnodes")  )
         SNnames = []    #subnode names
         for i in range(N_nodes):
-            SNnames.append(  fimm.Exec(nodestring+r"subnodes["+str(i+1)+"].nodename").strip()[:-2]  )   
+            SNnames.append(  fimm.Exec(nodestring+r".subnodes["+str(i+1)+"].nodename").strip()[:-2]  )   
             # trim whitespace via string's strip(), strip the two EOL chars '\n\x00' from end via indexing [:-2]
         # check if node name is in the node list:
         sameprojname = np.where( np.array(SNnames) == np.array([self.name]) )[0]
@@ -292,11 +428,11 @@ class Node(object):
                 '''delete the offending identically-named node'''
                 if warn: print "Overwriting existing Node #" + str(sameprojname) + ", `" + SNnames[sameprojname] + "`."
                 sameprojname = sameprojname[0]+1
-                fimm.Exec(nodestring+"subnodes["+str(sameprojname)+"].delete")
+                fimm.Exec(nodestring+".subnodes["+str(sameprojname)+"].delete")
             else: 
                 '''change the name of this new node'''
                 if warn: print "WARNING: Node name `" + self.name + "` already exists;"
-                self.name += dt.datetime.now().strftime('.%f')   # add current microsecond to the name
+                self.name += "." +str( get_next_refnum() )      #dt.datetime.now().strftime('.%f')   # add current microsecond to the name
                 print "\tNode name changed to: ", self.name
             #end if(overwrite)
         else:
@@ -311,37 +447,74 @@ class Node(object):
         parent_node.children.append(self)
         
     def delete(self):
+        fimm.Exec(  "%s.delete()"%(self.nodestring)  )
+        '''
         if self.parent is None:
             fimm.Exec("app.subnodes[{"+str(self.num)+"}].delete()")
         else:
             fimm.Exec("app.subnodes[{"+str(self.parent.num)+"}].subnodes[{"+str(self.num)+"}].delete()")
+        '''
             
 #end class Node
 
             
             
 class Project(Node):
-    """Create new Fimmwave Project, with incremented node number.
+    """Return a new Fimmwave Project.
     Project inherits from the Node class. 
-    Arguments are passed to this Node class constructor - type help('pyFIMM.Node') for available arguments.
+    DEPRECATED: Arguments are passed to the Node class constructor - type help('pyFIMM.Node') for available arguments.
+    The Project node is only built in FimmWave when you call `ProjectObj.buildNode()`.
+    
+    Please type `dir(ProjectObj)` or `help(ProjectObj)` to see all the attributes and methods available.
+    
     
     Parameters
     ----------
-    buildNode : { True | False }
-        build the project node as well?
-    overwrite : { True | False }
-        if True, will overwrite an already-open project with the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.
     name : string
-        Set the fimmwave name for this node
-        """
-    def __init__(self, *args, **kwargs):
-        self.built = False
-        build = kwargs.pop('buildNode', False)  # to buildNode or not to buildNode?
+        Set the fimmwave name for this node.
+    
+    buildNode : { True | False }, optional
+        build the project node right away?  Requires than a name is passed.
+    
+    overwrite : { True | False }, optional
+        Only valid if `buildNode=True`. If True, will delete a project already open in FimmWave with the same name if it's the last project in the FimmWave list, otherwise will rename the offending Project (retaining desired name of this new Project).  If False, and a similarly-named Project exists in FimmWave, will modify the supplied project name. 
+        The modified name is created by adding a random number to the end, such as "NewNodeName.123456", and can be found in the variable: `ProjectObj.name`.
+    
+    
+    Attributes
+    ----------
+    
+    Once ProjectObj.buildNode() has been called, the following attributes are available (they are set to `None` beforehand):
+    
+    name : string, name of the FimMWave Node
+    
+    num : int, number of this node in FimmWave
+    
+    nodestring : string, to access this node in FimmWave.  Eg. `app.subnodes[5]`, omitting trailing period `.`.
+    
+    savepath : string, the path to file for the project.
+    
+    origin : { 'pyfimm' | 'fimmwave' }
+        Indicates whether this Device was built using pyFIMM, or was constructed in FimmWave & imported via `import_device()`.
+    
+    """
+    
+    def __init__(self, name=None, buildNode=False, overwrite=False, warn=True , *args, **kwargs):
+        
+        #build = kwargs.pop('buildNode', False)  # to buildNode or not to buildNode?
         #overwrite = kwargs.pop('overwrite', False)  # to overwrite existing project of same name
-        super(Project, self).__init__(*args, **kwargs)   # call Node() constructor, passing extra args
-        kwargs.pop('overwrite', False)  # remove kwarg's which were popped by Node()
-        kwargs.pop('warn', False)
-        if build: self.buildNode(  )    # Hopefully Node `pops` out any kwargs it uses.
+        
+        super(Project, self).__init__(name)   # call Node() constructor, passing extra args
+        ## Node('NameOfNode', NodeNumber, ParentNodeObject, Children)
+        
+        self.built = False
+        self.num = self.nodestring = self.savepath = None
+        if name: self.name = name
+        
+        #kwargs.pop('overwrite', False)  # remove kwarg's which were popped by Node()
+        #kwargs.pop('warn', False)
+        
+        if buildNode: self.buildNode(overwrite=overwrite, warn=warn  )    # Hopefully Node `pops` out any kwargs it uses.
         
         if kwargs:
             '''If there are unused key-word arguments'''
@@ -351,21 +524,25 @@ class Project(Node):
             ErrStr += "}.    Continuing..."
             print ErrStr
         
-    def buildNode(self, name=None, overwrite=False):
+    def buildNode(self, name=None, overwrite=False, warn=True):
         '''Build the Fimmwave node of this Project.
         
         Parameters
         ----------
         name : string, optional
             Provide a name for this waveguide node.
-        overwrite : { True | False }
-            If True, will overwrite an already-open project with the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.
+        
+        overwrite : { True | False }, optional
+            If True, will delete a project already open in FimmWave with the same name if it's the last project in the FimmWave list, otherwise will rename the offending Project (retaining desired name of this new Project).  If False, and a similarly-named Project exists in FimmWave, will modify the supplied project name. 
+        The modified name is created by adding a random number to the end, such as "NewNodeName.123456", and can be found in the variable: `ProjectObj.name`.
         '''
         
         if DEBUG(): print "Project.buildNode():"
         if name: self.name = name
         self.type = 'project'   # unused!
         
+        
+        """ Deprecated - using check_node_name() instead.
         ## Check if top-level (project) node name conflicts with one already in use:
         #AppSubnodes = fimm.Exec("app.subnodes")        # The pdPythonLib didn't properly handle the case where there is only one list entry to return.  Although we could now use this function, instead we manually get each subnode's name:
         N_nodes = int(  fimm.Exec("app.numsubnodes")  )
@@ -374,38 +551,45 @@ class Project(Node):
             SNnames.append(  fimm.Exec(r"app.subnodes["+str(i+1)+"].nodename").strip()[:-2]  )   
             # trim whitespace via string's strip(), strip the two EOL chars '\n\x00' from end via indexing [:-2]
         
-        ## NOTE: the following code is already run by the Node() constructor if called as wg_prj=Project('name'), but calling Project.buildNode(name, parent) doesn't run the node constructor, so I have to re-run the code here.  I think that's correct - either way we shouldn't have to code this twice.
         # check if node name is in the node list:
-        sameprojname = np.where( np.array(SNnames) == np.array([self.name]) )[0]
-        #if DEBUG(): print "Node.buildNode(): [sameprojname] = ", sameprojname, "\nSNnames= ", SNnames
-        if len( sameprojname  ) > 0:
+        sameprojidx = np.where( np.array(SNnames) == np.array([self.name]) )[0]
+        if DEBUG(): print "Node '%s'.buildNode(): [sameprojname] = " % self.name, sameprojidx, "\nSNnames= ", SNnames
+        
+        if len( sameprojidx  ) > 0:
             '''if identically-named node was found'''
             if overwrite:
                 '''delete the offending identically-named node'''
-                print self.name + ".buildNode(): Overwriting existing Node #" + str(sameprojname) + ", `" + SNnames[sameprojname] + "`."
-                sameprojname = sameprojname[0]+1
-                fimm.Exec("app.subnodes["+str(sameprojname)+"].delete")
+                print self.name + ".buildNode(): Overwriting existing Node #" + str(sameprojidx) + ", `" + SNnames[sameprojidx] + "`."
+                sameprojidx = sameprojidx[0]+1
+                fimm.Exec("app.subnodes["+str(sameprojidx)+"].delete")
             else: 
                 '''change the name of this new node'''
                 print self.name + ".buildNode(): WARNING: Node name `" + self.name + "` already exists;"
-                self.name += dt.datetime.now().strftime('.%f')   # add current microsecond to the name
+                self.name += "." +str( get_next_refnum() )      #dt.datetime.now().strftime('.%f')   # add current microsecond to the name
                 print "\tNode name changed to: ", self.name
             #end if(overwrite)
         else:
             #if DEBUG(): print "Node name is unique."
             pass
         #end if(self.name already exists) aka. len(sameprojname)
+        """
+        
+        nodestring = "app"     # the top-level
+        self.name, samenodenum = check_node_name( self.name, nodestring=nodestring, overwrite=overwrite, warn=warn )  # get modified nodename & nodenum of same-named Proj, delete/rename existing node if needed.
+        
         
         '''Create the new node:     '''
         N_nodes = fimm.Exec("app.numsubnodes")
         node_num = int(N_nodes)+1
         fimm.Exec("app.addsubnode(fimmwave_prj,"+str(self.name)+")")
         self.num = node_num
+        self.nodestring = "app.subnodes[%i]" % self.num
         self.savepath = None
         self.built = True
+    #end buildNode()
     
     
-    def savetofile(self, path=None, overwrite=False):
+    def save_to_file(self, path=None, overwrite=False):
         '''savetofile(path): 
         Save the Project to a file.  Path is subsequently stored in `Project.savepath`. 
         
@@ -414,18 +598,19 @@ class Project(Node):
         path : string, optional
             Relative (or absolute?) path to file.  ".prj" will be appended if it's not already present.
             If not provided, will assume the Project has been saved before, and will save to the same path (you should set `overwrite=True` in this case).
+            
         overwrite : { True | False }, optional
-            Overwrite existing file?  False by default.  Will error with "FileExistsError" if this is false & file already exists.
+            Overwrite existing file?  False by default.  Will error with "FileExistsError" if this is False & file already exists.
         '''
         
         if path == None:
             if self.savepath:
                 path = self.savepath
             else:
-                ErrStr = 'Project.savetofile(): path not provided, and project does not have `savepath` set (has never been saved before).  Please provide a path to save file.'
+                ErrStr = self.name + '.savetofile(): path not provided, and project does not have `savepath` set (has never been saved before).  Please provide a path to save file.'
                 raise ValueError(ErrStr)
         
-        if path.split('.')[-1] != 'prj':    path = path + '.prj'    # append '.prj' if needed
+        if not path.endswith('.prj'):    path = path + '.prj'    # append '.prj' if needed
         
         if os.path.exists(path) and overwrite: 
             print self.name + ".savetofile(): WARNING: File `" + os.path.abspath(path) + "` will be overwritten."
@@ -435,7 +620,7 @@ class Project(Node):
         elif os.path.exists(path) and not overwrite:
             raise IOError(self.name + ".savetofile(): File `" + os.path.abspath(path) + "` exists.  Use parameter `overwrite=True` to overwrite the file.")
         else:
-            fimm.Exec("app.subnodes[{"+str(self.num)+"}].savetofile(" + path + ")")
+            fimm.Exec(   "%s.savetofile"%(self.nodestring) + "(%s)"%(path)   )
             self.savepath = os.path.abspath(path)
             print self.name + ".savetofile(): Project `" + self.name + "` saved to file at: ", os.path.abspath(self.savepath)
         #end if(file exists/overwrite)
@@ -444,19 +629,28 @@ class Project(Node):
     
 #end class(Project)
 
+# Note!  Project.import_device() is added in the file __Device.py, for cyclic import reasons!
 
-def import_Project(filepath, overwrite=False):
+
+def import_project(filepath, name=None, overwrite=False, warn=True):
     '''Import a Project from a file.  
     
     filepath : string
         Path (absolute or relative?) to the FimmWave .prj file to import.
     
-    overwrite : { True | False }
-            If True, will overwrite an already-open Fimmwave project with the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.
+    name : string, optional
+        Optionally provide a name for the new Project node in Fimmwave.  If omitted, the Project name save in the file will be used.
+    
+    overwrite : { True | False }, optional
+        If True, will overwrite an already-open Fimmwave project that has the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.  False by default.
+    
+    warn : { True | False }, optional
+        Print or suppress warnings when nodes will be overwritten etc.  True by default.
     
     '''
+    
     '''For ImportDevice: Path should be path (string) to the FimmWave node, eg. 'Dev1' if Device withthat name is in the top-level of the project, or 'Dev1/SubDev' if the target Device is underneath another Device node.'''
-    # Create Project object.  Set the "path", 'num', 'name' attributes of the project.
+    # Create Project object.  Set the "savepath", 'num', 'name' attributes of the project.
     # return a project object
     
     if DEBUG(): print "importProject():"
@@ -468,56 +662,68 @@ def import_Project(filepath, overwrite=False):
         raise IOError(ErrStr)
     
     
-    '''Open the project file, and make sure the project name isn't already in the FimmWave node list (will pop a FimmWave error)'''
-    prjf = open(filepath)
-    prjtxt = prjf.read()
-    close(prjf)
+    # Open the project file, and 
+    #   make sure the project name isn't already in the FimmWave node list (will pop a FimmWave error)
+    if name is None:
+        # Get name from the Project file we're opening
+        prjf = open(filepath)
+        prjtxt = prjf.read()    # load the entire file
+        prjf.close()
     
-    import re   # regex matching
-    ''' In the file: 
-    begin <fimmwave_prj(1.0)> "MZI Encoder v1"
-    '''
-    prjname_pattern = re.compile(     r'.*begin \<fimmwave_prj\(1\.0\)\> "(.*)".*'    )
-    # perform the search:
-    m = prjname_pattern.search(  prjtxt  )      # use regex pattern to extract project name
-    # m will contain any 'groups' () defined in the RegEx pattern.
-    if m:
-        prjname = m.group(1)	# grab 1st group from RegEx
-        if DEBUG(): print 'Project Name found:', m.groups(), ' --> ', prjname
-    #groups() prints all captured groups
+        import re   # regex matching
+        ''' In the file: 
+        begin <fimmwave_prj(1.0)> "My Project Name"
+        '''
+        prjname_pattern = re.compile(     r'.*begin \<fimmwave_prj\(\d\.\d\)\> "(.*)".*'    )
+        # perform the search:
+        m = prjname_pattern.search(  prjtxt  )      # use regex pattern to extract project name
+        # m will contain any 'groups' () defined in the RegEx pattern.
+        if m:
+            prjname = m.group(1)	# grab 1st group from RegEx
+            if DEBUG(): print 'Project Name found:', m.groups(), ' --> ', prjname
+        #groups() prints all captured groups
+    else:
+        prjname = name
     
-    newprjname = checkNodeName( prjname )
+    
+    nodestring = "app"
+    newprjname, samenodenum = check_node_name( prjname, nodestring=nodestring, overwrite=overwrite, warn=warn )  # get modified nodename & nodenum of same-named Proj, delete/rename existing node if needed.
+    
+    """
     if newprjname != prjname:
         '''Project with same name exists'''
         if overwrite:
             '''delete the offending identically-named node'''
-            if warn: print "Overwriting existing Node #" + str(sameprojname) + ", `" + SNnames[sameprojname] + "`."
-            sameprojname = sameprojname[0]+1
-            fimm.Exec(nodestring+"subnodes["+str(sameprojname)+"].delete")
+            if warn: print "Overwriting existing Node #" + str(samenodenum) + ", '%s'." % prjname
+            fimm.Exec(nodestring+".subnodes["+str(samenodenum)+"].delete")
             newprjname = prjname    #use orig name
     #end if(project already exists)
-    
+    """
     
     
     '''Create the new node:     '''
     N_nodes = fimm.Exec("app.numsubnodes")
     node_num = int(N_nodes)+1
+    if DEBUG(): print "import_project(): app.subnodes ", N_nodes, ", node_num = ", node_num
     '''app.openproject: FUNCTION - ( filename[, nodename] ): open the specified project with the specified node name'''
-    fimm.Exec("app.openproject(" + str(filepath) + ', "" )'  )   # open the .prj file
+    fimm.Exec("app.openproject(" + str(filepath) + ', "'+ newprjname + '" )'  )   # open the .prj file
     
-    prj = Project()     # new Project obj
+    prj = Project(prjname)     # new Project obj
     prj.type = 'project'  # unused!
     prj.num = node_num
     prj.built = True
     prj.savepath = savepath
-    prj.name = fimm.Exec(  "app.subnodes[%i].nodename " % prj.num  )
-    prj.origin = 'fimm'
+    prj.nodestring = "app.subnodes[%i]"%(prj.num)
+    prj.name = strip_txt(  fimm.Exec(  "%s.nodename "%(prj.nodestring)  )  )
+    prj.origin = 'fimmwave'
     
     
     
     return prj
 #end ImportProject()
 
+# Alias to the same function:
+import_Project = import_project
 
 '''
 app.openproject(T:\MZI Encoder\MZI Encoder v8.prj,"")  <-- see if 2nd arg is NodeName, if so, could obviate issue with re-opening a project (name already exists)
@@ -901,16 +1107,17 @@ class Slice:
 
 class Section:
     '''Section( WGobject, length)
-    Section class applies a Length to a Waveguide object.
+    Section class applies a Length to a Waveguide object.  This object is only used when creating a new pyFIMM Device object, and is usually invisible to the end-user.
     This is so that a Device can reference the same WG multiple times, but with a different length each time.
     Usually not created manually, but instead returned when user passes a length to a WG (Waveguide or Circ) object.
     
     Parameters
     ----------
-    WGobject : Waveguide or Circ object
-        Waveguide or Circ object, previously built.
+    WGobject : Waveguide, Circ or Device object
+        Waveguide, Circ or Device object, previously built.
+        
     length : float
-        length of this WG, when inserted into Device.
+        length of this WG, when inserted into Device.  Required for Waveguide or Circ objects, not required for Device objects.
         
     To Do:
     ------
@@ -925,17 +1132,28 @@ class Section:
     '''
     
     def __init__(self, *args):
+        if len(args) == 0:
+            '''return empty object'''
+            self.WG = None
+            self.length = None
         if len(args) == 1:
+            '''Only Waveguide/Device passed.  Device.__call__ uses this case'''
             #if DEBUG(): print "Section: 1 args=\n", args
             self.WG = args[0]
-            self.length = 0
+            try:
+                self.length = self.WG.get_length()
+            except AttributeError:
+                ErrStr = "Section.__init__(): The specified Waveguide/Device has no method `get_length()`.  Please pass a Waveguide, Circ or Device (or similar, eg. Lens) object that has a length.\n\tGot args = " + str(args)
+                raise AttributeError(ErrStr)
         elif len(args) == 2:
+            '''WG & length passed.  Waveguide/Circ.__call__ use this case.'''
             #if DEBUG(): print "-- Section: 2 args=\n", args
             self.WG = args[0]
             self.length = args[1]
         else:
-            raise ValueError("Invalid number of arguments to Section().")
-    
+            raise ValueError( "Invalid number of arguments to Section().  args=" + str(args) )
+        
+        
     def __str__(self):
         '''How to `print` this object.'''
         string='Section object (of pyFIMM module).'
@@ -1398,3 +1616,263 @@ def get_temperature():
     except NameError:
         global_temperature = None
     return global_temperature
+#end get_temperature
+
+
+def get_amf_data(modestring, filename="temp", precision=r"%10.6f", maxbytes=500):
+    '''Return the various mode profile data from writing an AMF file.
+    This returns data for all field components of a mode profile, the start/end x/y values in microns, number of data points along each axis and some other useful info.
+    The AMF file and accompanying temporary files will be saved into the directory designated by the variable `AMF_Folder_Str()`, which is typically something like "pyFIMM_temp/".
+    Temporary files are created in order to extract the commented lines.
+    This function currently does NOT return the field vlaues, as they are much more efficiently acquired by the FimMWave functions get_field()
+    
+    Parameters
+    ----------
+    modestring : str
+        The entire FimmWave string required to produce the amf file, omitting the ".writeamf(...)" function itself, typically a reference to the individual mode to be output.  An example would be:
+            app.subnodes[7].subnodes[1].evlist.list[1].profile.data
+    
+    filename : str, optional
+        Desired filename for the AMF-file &  output.
+    
+    precision : str, optional
+        String passed to the FimmWave function `writeamf()` to determine output precision of field values, as a standard C-style format string.  Defaults to "%10.6f", specifying a floating point number with minimum 10 digits and 6 decimal points.
+    
+    maxbytes : int, optional
+        How many bytes to read from the AMF file.  This prevents reading all the field data, and speeds up execution/memory usage.  Defaults to 500 bytes, which typically captures the whole AMF file header info.
+    
+    
+    Returns
+    -------
+    A dictionary is returned containing each value found in the AMF file header.
+    {'beta': (5.980669+0j),     # Beta (propagation constant), as complex value
+     'hasEX': True,             # does the AMF file contain field values for these components?
+     'hasEY': True,
+     'hasEZ': True,
+     'hasHX': True,
+     'hasHY': True,
+     'hasHZ': True,
+     'isWGmode': True,          # is this a waveguide mode?
+     'iscomplex': False,        # are the field values (and Beta) complex?
+     'lambda': 1.55,            # wavelength
+     'nx': 100,                 # Number of datapoints in the x/y directions
+     'ny': 100,
+     'xmax': 14.8,              # x/y profile extents, in microns
+     'xmin': 0.0,
+     'ymax': 12.1,
+     'ymin': 0.0}
+    
+    Examples
+    --------
+    >>> ns = "app.subnodes[7].subnodes[1].evlist.list[1].profile.data"
+    >>> fs = "pyFIMM_temp\mode1_pyFIMM.amf"
+    >>> data = pf.get_amf_data(ns, fs)
+    
+    '''
+    
+    
+    
+    '''
+  100 100 //nxseg nyseg
+    0.000000      14.800000       0.000000      12.100000  //xmin xmax ymin ymax
+  1 1 1 1 1 1 //hasEX hasEY hasEZ hasHX hasHY hasHZ
+    6.761841       0.000000  //beta
+    1.550000  //lambda
+  0 //iscomplex
+  1 //isWGmode
+    '''
+    import re   # RegEx module
+    
+    # write an AMF file with all the field components.
+    if not filename.endswith(".amf"):  filename += ".amf"   # name of the files
+    
+    # SubFolder to hold temp files:
+    if not os.path.isdir(str( AMF_FolderStr() )):
+        os.mkdir(str( AMF_FolderStr() ))        # Create the new folder if needed
+    mode_FileStr = os.path.join( AMF_FolderStr(), filename )
+    
+    if DEBUG(): print "Mode.plot():  " + modestring + ".writeamf("+mode_FileStr+",%s)"%precision
+    fimm.Exec(modestring + ".writeamf("+mode_FileStr+",%s)"%precision)
+
+    ## AMF File Clean-up
+    #import os.path, sys  # moved to the top
+    fin = open(mode_FileStr, "r")
+    if not fin: raise IOError("Could not open '"+ mode_FileStr + "' in " + sys.path[0] + ", Type: " + str(fin))
+    #data_list = fin.readlines()        # put each line into a list element
+    data_str = fin.read( maxbytes )     # read file as string, up to maxbytes.
+    fin.close()
+    
+    out = {}    # the data to return, as dictionary
+    
+    ''' Grab the data from the header lines '''
+    # how much of the data to search (headers only):
+    s = [0, 2000]   # just in case the entire file gets read in later, to grab field data
+    # should disable this once we know we don't need the AMF field data
+    
+    # Set regex pattern to match:
+    '''  100 100 //nxseg nyseg'''
+    pat = re.compile(     r'\s*(\d+)\s*(\d+)\s*//nxseg nyseg'  )
+    m = pat.search(  data_str[s[0]:s[1]]  )      # perform the search
+    # m will contain any 'groups' () defined in the RegEx pattern.
+    if m:
+        print 'segment counts found:', m.groups()   #groups() prints all captured groups
+        nx = int( m.group(1) )	# grab 1st group from RegEx & convert to int
+        ny = int( m.group(2) )
+        print '(nx, ny) --> ', nx, ny
+    out['nx'],out['ny'] = nx, ny
+
+    # Set regex pattern to match:
+    '''    0.000000      14.800000       0.000000      12.100000  //xmin xmax ymin ymax'''
+    pat = re.compile(     r'\s*(\d+\.?\d*)\s*(\d+\.?\d*)\s*(\d+\.?\d*)\s*(\d+\.?\d*)\s*//xmin xmax ymin ymax'  )
+    m = pat.search(  data_str[s[0]:s[1]]  )      # perform the search
+    # m will contain any 'groups' () defined in the RegEx pattern.
+    if m:
+        print 'window extents found:',m.groups()    #groups() prints all captured groups
+        xmin = float( m.group(1) )	# grab 1st group from RegEx & convert to int
+        xmax = float( m.group(2) )
+        ymin = float( m.group(3) )
+        ymax = float( m.group(4) )
+        print '(xmin, xmax, ymin, ymax) --> ', xmin, xmax, ymin, ymax
+    out['xmin'],out['xmax'],out['ymin'],out['ymax'] =  xmin, xmax, ymin, ymax
+
+    # Set regex pattern to match:
+    '''  1 1 1 1 1 1 //hasEX hasEY hasEZ hasHX hasHY hasHZ'''
+    pat = re.compile(     r'\s*(\d)\s*(\d)\s*(\d)\s*(\d)\s*(\d)\s*(\d)\s*//hasEX hasEY hasEZ hasHX hasHY hasHZ'  )
+    m = pat.search(  data_str[s[0]:s[1]]  )      # perform the search
+    # m will contain any 'groups' () defined in the RegEx pattern.
+    if m:
+        print 'components found:',m.groups()    #groups() prints all captured groups
+        hasEX = bool( int(m.group(1)) )	# grab 1st group from RegEx & convert to int
+        hasEY = bool( int(m.group(2)) )
+        hasEZ = bool( int(m.group(3)) )
+        hasHX = bool( int(m.group(4)) )
+        hasHY = bool( int(m.group(5)) )
+        hasHZ = bool( int(m.group(6)) )
+        print '(hasEX, hasEY, hasEZ, hasHX, hasHY, hasHZ) --> ', hasEX, hasEY, hasEZ, hasHX, hasHY, hasHZ
+    out['hasEX'],out['hasEY'],out['hasEZ'],out['hasHX'],out['hasHY'],out['hasHZ'] \
+        = hasEX, hasEY, hasEZ, hasHX, hasHY, hasHZ
+
+    # Set regex pattern to match:
+    '''    6.761841       0.000000  //beta'''
+    pat = re.compile(     r'\s*(\d+\.?\d*)\s*(\d+\.?\d*)\s*//beta'  )
+    m = pat.search(  data_str[s[0]:s[1]]  )      # perform the search
+    # m will contain any 'groups' () defined in the RegEx pattern.
+    if m:
+        print 'beta found:',m.groups()    #groups() prints all captured groups
+        beta_r = float( m.group(1) )	# grab 1st group from RegEx & convert to int
+        beta_i = float( m.group(2) )
+        beta = beta_r + beta_i*1j
+        print 'beta --> ', beta
+    out['beta'] = beta
+
+    # Set regex pattern to match:
+    '''    1.550000  //lambda'''
+    pat = re.compile(     r'\s*(\d+\.?\d*)\s*//lambda'  )
+    m = pat.search(  data_str[s[0]:s[1]]  )      # perform the search
+    # m will contain any 'groups' () defined in the RegEx pattern.
+    if m:
+        print 'lambda found:',m.groups()    #groups() prints all captured groups
+        lam = float( m.group(1) )	# grab 1st group from RegEx & convert to int
+        print 'lambda --> ', lam
+    out['lambda'] =  lam 
+
+
+    # Set regex pattern to match:
+    '''  0 //iscomplex'''
+    pat = re.compile(     r'\s*(\d)\s*//iscomplex'  )
+    m = pat.search(  data_str[s[0]:s[1]]  )      # perform the search
+    # m will contain any 'groups' () defined in the RegEx pattern.
+    if m:
+        print 'iscomplex found:',m.groups()    #groups() prints all captured groups
+        iscomplex = bool( int(m.group(1)) )	# grab 1st group from RegEx & convert to int
+        print 'iscomplex --> ', iscomplex
+    out['iscomplex'] =  iscomplex 
+
+    # Set regex pattern to match:
+    '''  1 //isWGmode'''
+    pat = re.compile(     r'\s*(\d)\s*//isWGmode'  )
+    m = pat.search(  data_str[s[0]:s[1]]  )      # perform the search
+    # m will contain any 'groups' () defined in the RegEx pattern.
+    if m:
+        print 'isWGmode found:',m.groups()    #groups() prints all captured groups
+        isWGmode = bool( int(m.group(1)) )	# grab 1st group from RegEx & convert to int
+        print 'isWGmode --> ', isWGmode
+    out['isWGmode'] =  isWGmode
+
+
+
+    
+    
+    return out
+    
+    """
+    # Delete File Header
+    nxy_data = data_list[1]
+    xy_data = data_list[2]
+    slvr_data = data_list[6]
+    del data_list[0:9]
+    
+    # strip the comment lines from the nxy file:
+    nxyFile = os.path.join( AMF_FolderStr(), "mode" + str(num) + "_pyFIMM_nxy.txt")
+    fout = open(nxyFile, "w")
+    fout.writelines(nxy_data)
+    fout.close()
+    nxy = pl.loadtxt(nxyFile, comments='//')
+    nx = int(nxy[0])
+    ny = int(nxy[1])
+    
+    xyFile = os.path.join( AMF_FolderStr(), "mode" + str(num) + "_pyFIMM_xy.txt")
+    fout = open(xyFile, "w")
+    fout.writelines(xy_data)
+    fout.close()
+    xy = pl.loadtxt(xyFile, comments='//')
+    
+    slvrFile = os.path.join( AMF_FolderStr(), "mode" + str(num) + "_pyFIMM_slvr.txt")
+    fout = open(slvrFile, "w")
+    fout.writelines(slvr_data)
+    fout.close()
+    iscomplex = pl.loadtxt(slvrFile, comments='//')
+
+    # Find Field Component
+    if field_cpt_in == None:
+        '''If unspecified, use the component with higher field frac.'''
+        tepercent = fimm.Exec(self.modeString + "list[{" + str(num) + "}].modedata.tefrac")
+        if tepercent > 50:
+            field_cpt = 'Ex'.lower()
+        else:
+            field_cpt = 'Ey'.lower()
+    #end if(field_cpt_in)
+    
+    if field_cpt == 'Ex'.lower():
+        data = data_list[1:nx+2]
+    elif field_cpt == 'Ey'.lower():
+        data = data_list[(nx+2)+1:2*(nx+2)]
+    elif field_cpt == 'Ez'.lower():
+        data = data_list[2*(nx+2)+1:3*(nx+2)]
+    elif field_cpt == 'Hx'.lower():
+        data = data_list[3*(nx+2)+1:4*(nx+2)]
+    elif field_cpt == 'Hy'.lower():
+        data = data_list[4*(nx+2)+1:5*(nx+2)]
+    elif field_cpt == 'Hz'.lower():
+        data = data_list[5*(nx+2)+1:6*(nx+2)]
+    else:
+        ErrStr = 'Invalid Field component requested: ' + str(field_cpt)
+        raise ValueError(ErrStr)
+    
+    del data_list
+    
+    # Resave Files
+    fout = open(mode_FileStr+"_"+field_cpt.strip().lower(), "w")
+    fout.writelines(data)
+    fout.close()
+    
+    # Get Data
+    if iscomplex == 1:
+        field_real = pl.loadtxt(mode_FileStr, usecols=tuple([i for i in range(0,2*ny+1) if i%2==0]))
+        field_imag = pl.loadtxt(mode_FileStr, usecols=tuple([i for i in range(0,2*ny+2) if i%2!=0]))
+    else:
+        field_real = pl.loadtxt(mode_FileStr)
+    """
+
+
+#end get_amf_data()

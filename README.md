@@ -1,22 +1,25 @@
 # pyFIMM
 A Python Interface to [PhotonDesign's FimmWave/FimmProp software](http://www.photond.com/products/fimmwave.htm).
 Interface based on [Peter Beinstman's CAMFR simulation software](http://camfr.sourceforge.net).
-Originally created by Jared Bauters at the [University of California Santa Barbara](ucsb.edu) in 2011; 
+Originally created by Jared F. Bauters at the [University of California Santa Barbara](ucsb.edu) in 2011; 
 Updated by Demis D. John, 2015.
 
 
 ## Description
-pyFIMM provides a CAMFR-like scripting interface to [Photon Design's FIMMWAVE/FIMMPROP electromagnetic/photonic simulation tools](http://www.photond.com/products/fimmwave.htm), in Python, to construct, simulate, plot and analyze photonic devices in FimmWave.  This enables one to do additional analysis and math on the simulations in python itself, and defined complex Python functions or loops that use FimmWave to do the heavy-lifting of solving for modes and Scattering Matrices.
-In addition, some additional analysis functions are included, based on examples provided by Photon Design.
+
+pyFIMM provides a CAMFR-like scripting interface to [Photon Design's FIMMWAVE/FIMMPROP electromagnetic/photonic simulation tools](http://www.photond.com/products/fimmwave.htm), for Python, to construct, simulate, plot and analyze photonic devices using FimmWave.  This enables one to do additional analysis and math on the simulations in python itself, and define complex Python functions or loops that use FimmWave to do the heavy-lifting of solving for modes and Scattering Matrices.  The FimmWave/FimmProp GUI contains much functionality that is not implemented by *pyFIMM* - if you'd like some PhotonDesign feature to be included in pyFIMM, feel free to contribute code or open a "proposal" Issue on the Issue tracker.
+
+Some additional analysis functions are included, based on examples provided by Photon Design.  An important capability is the ability to simulate & solve/plot the fields in an optical Cavity.  Mode-plotting is enabled by the excellent matplotlib library.
 
 The interface is set up like [Peter Beinstman's CAMFR (CAvity Modelling FRamework)](http://camfr.sourceforge.net) system, in which 1-D Slices are concatenated to produce arbitrary 2-D index profiles, which can be further concatenated to produce full 3-D photonic integrated circuits.
+
 Photon Design's Python library, `pdPythonLib`, is included in the module.
 
 
 ## Examples
 Example of rectangular waveguide construction syntax: We will create a rectangular waveguide of SiO2 cladding and SiN core, calculate the fundamental mode & plot it. 
 
-The following assumes you imported the module via `import pyfimm`, with your script residing in the same directory as the pyfimm folder.  `pyfimm` could be replaced with whatever name you imported the pyFIMM module under - for example, if you imported it like so:
+The following assumes you imported the module via `import pyfimm`, with your script residing in the same directory as the *pyfimm* folder.  `pyfimm` could be replaced with whatever name you imported the pyFIMM module under - for example, if you imported it like so:
 
     >>> import pyfimm as pf
     
@@ -32,7 +35,7 @@ Then, create some 1-D slabs, by calling those Materials with a thickness value, 
     clad = pyfimm.Slice(  SiO(15.75)  )      # Thicknesses in microns
     core = pyfimm.Slice(  SiO(10.0) + SiN(2.5) + SiO(5.0)  )
     
-This created an imaginary structure from bottom-to-top, for example `core` looks like:
+This created an imaginary structure from bottom-to-top. For example `core` looks like:
 
             top         
     --------------------
@@ -71,9 +74,9 @@ Then tell FimmWave to actually build these structures:
 
     >>> WG.buildNode(name='Waveguide', parent=wg_prj)     # Build the Fimmwave Node
     
-Now the RWG waveguide node is available in the Fimmwave GUI.  (Note you should have already made a Project node in fimmwave, which is referenced as the `parent` here.  See Examples for full code.)
+Now the RWG (Rectangular) waveguide node is available in the Fimmwave GUI.  (Note you should have already made a Project node in fimmwave, which is referenced as the `parent` here.  See *Example1* for full code.)
 
-You can then calculate the modes as so:
+You can then have FimmWave calculate the modes as so:
 
     >>> WG.calc()
 
@@ -85,12 +88,12 @@ Or extract field values like so:
 
 	>>> Mode1_Ex = WG.mode(1).get_field('Ex')   # Saves x-direction E-field for 2nd mode
 
-See the Examples directory for full examples, as some details are missing in these.
+See the Examples directory for full examples, as some details are missing here.
 
 
 
 ## Installation
-To use pyFIMM, simply download one of the released versions (see the "releases" or "tags" section of this page) and extract the archive into a directory.  Your Python script should reside in the same directory as the *pyfimm* folder, or else you should the parent directory of the *pyfimm* folder to your Python path at the beginning of your script.    
+To use pyFIMM, simply download one of the released versions (see the "releases" or "tags" section of this page) and extract the archive into a directory.  Your Python script should reside in the same directory as the *pyfimm* folder, or else you should add the parent directory of the *pyfimm* folder to your Python path at the beginning of your script.    
 
 Since FimmWave & FimmProp require Windows, you must run this on a Windows system with FimmWave installed (or via a Parallels virtual-machine).  Make sure your FimmWave executable starts up with the ability to interact with external scripts like Python (see FimmWave manual section 11.9, for setting up the scripting connection by starting Fimmwave with the '-pt 5101' command-line option, to listen on port 5101). 
 

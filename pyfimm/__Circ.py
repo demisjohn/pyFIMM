@@ -1,20 +1,17 @@
 '''Circ class, part of pyFIMM.
 Objects & functions needed for cylindrical calculations.'''
 
-#from pylab import *     # must kill these global namespace imports!
-#from numpy import *
-from __pyfimm import *      # access the main module's classes & modesolver functions
 
 from __globals import *         # import global vars & FimmWave connection object
 # DEBUG() variable is also set in __globals
 
+
+from __pyfimm import *      # access the main module's classes & modesolver functions
+
 #from __Waveguide import *   # not needed?
-from __Mode import *        # import Mode class
-
+from __Mode import Mode        # import Mode class
 #from __pyfimm import DEBUG()        # Value is set in __pyfimm.py
-
 from numpy import inf       # infinity, for hcurv/bend_radius
-
 
 class Circ(Node):
     """pyFimm Circ object, 2-D Cylindrical-coordinate version of Waveguide (a fimmWave FWG waveguide, eg. optical fiber).  
@@ -173,18 +170,19 @@ class Circ(Node):
     #    '''Calling ThisCirc(thick) sets the Thickness of this Circ, and returns a list containing this Slice.'''
     #    self.length = length
     #    return [self]
-    def __call__(self,*args):
-        '''Calling a WG object with one argument creates a Section of passed length, and returns a list containing this new WG. For example:
+    def __call__(self,length):
+        '''Calling a WG object with one argument creates a Section of passed length, and returns a list containing this new Section.
             Usually passed directly to Device as so:
-            >>> Device(  Circ1(10.5) + Circ2(1.25) + Circ3(10.5)  )
+            >>> NewDevice = pyfimm.Device(  WG1(10.5) + WG2(1.25) + WG3(10.5)  )
+            
+            Parameters
+            ----------
+            length : float
+                Pass a length (microns). This will be applied to the returned Section Object, which will also contain a reference to this waveguide object.
         '''
-        if len(args) == 1:
-            l = args[0]     # set thickness from 1st arg
-        else:
-            raise ValueError("Invalid Number of Arguments to Waveguide().")
         
-        # Always call WG with 1 args
-        out = [   Section(  self, l  )   ]    # include cfseg 
+        # Instantiate a Section obj with 1 args
+        out = [   Section(  self, length  )   ]    # include cfseg 
         return out
 
     def __add__(self,other):
@@ -319,7 +317,7 @@ class Circ(Node):
         
         if self.built:
             self.__wavelength = float(wl)
-            fimm.Exec(  self.nodestring + ".lambda = " + str(self.__wavelength) + "   \n"  )
+            fimm.Exec(  self.nodestring + ".evlist.svp.lambda = " + str(self.__wavelength) + "   \n"  )
         else:
             self.__wavelength = float(wl)
     
@@ -356,7 +354,7 @@ class Circ(Node):
         if name: self.name = name
         if parent: self.parent = parent
         
-        nodestring="app.subnodes["+str(self.parent.num)+"]."
+        nodestring="app.subnodes["+str(self.parent.num)+"]"
         self._checkNodeName(nodestring, overwrite=overwrite, warn=warn)     # will alter the node name if needed
         
         N_nodes = fimm.Exec("app.subnodes["+str(self.parent.num)+"].numsubnodes")
@@ -642,7 +640,7 @@ class Circ(Node):
                 raise ValueError("Invalid Modesolver String: " + str(get_mode_solver()) )
         
         # Set wavelength:
-        wgString += self.nodestring + ".lambda = " + str( self.get_wavelength() ) + "   \n"
+        wgString += self.nodestring + ".evlist.svp.lambda = " + str( self.get_wavelength() ) + "   \n"
         
         wgString += solverString
         

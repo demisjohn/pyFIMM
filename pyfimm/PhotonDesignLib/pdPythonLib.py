@@ -9,6 +9,7 @@ import os
 import re
 import __main__
 import types
+import time     # for pausing execution
 
 INTBUFFSIZE = 20 #tcp/ip buffer length defined in the application
 portsTaken = []#list of ports that are already taken
@@ -267,6 +268,7 @@ class pdApp:
             except:
                 a = a + 1
                 print "Connection Attempt Number " + repr(a)
+                time.sleep(1)
                 if (a==CONNECTIONATTEMPTS):
                     print "WARNING: Failed to connect to the application\n"
                     return retstr + "Failed to connect to the application\n"

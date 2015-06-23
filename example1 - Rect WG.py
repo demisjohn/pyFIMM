@@ -2,22 +2,25 @@
 ##########################################################################
 
 Simple rectangular waveguide example using the FMM solver
+Demonstrates basic WG construction & plotting capabilities.
+
+In Spyder, make sure you run the script with the Run > Configure... settings
+    "Execute in current Python console"
+or 
+    "Execute in a new dedicated Python console"  &  "Interact with the Python console after execution"
+to allow for dynamic commands and interacting with the objects you created.  
+If Spyder doesn't return an interactive console after running the script, then 
+check this setting in the menu Run > Configure...  
 
 Note that other python sessions using FimmWave connections should be terminated
 before a new connection can be created, or the python terminal won't be able to
 connect to FimmWave.
-
-In Spyder, make sure you select "Interact with the Python console after execution"
-to allow for dynamic commands and interacting with the objects you created.  
-If Spyder doesn't return an interactive console after running the script, then 
-check this setting in Run > Configure...  
  
 ##########################################################################
  '''
 
 import pyfimm as pf # Every script must begin with this line
 ''' Get help on commands and objects by typing things like:
-    (after you've created some objects, or run your script with 'interact with shell afterwards' enabled and then try these.)
     >>> help( pf )
     >>> dir( pf )     # lists all functions and variables provided by the module
     >>> help( pf.set_mode_solver )  # help on one function
@@ -26,12 +29,12 @@ import pyfimm as pf # Every script must begin with this line
     >>> help( pf.Waveguide.mode(0).plot )   # help on funciton 'plot' of the Waveguide object
     >>> help( pf.Circ.buildNode )   # help on the `buildNode` function of the Circ object
     
-or even easier, while building the script try:
+or even easier, while building the script interactively, or after execution, try:
     >>> clad = pf.Material(1.4456)
     >>> core = pf.Material(1.9835)
-    >>> help(clad)      # Will show help on the Material object
+    >>> help(clad)              # Will show help on the Material object
     >>> strip = pf.Waveguide( side(w_side) + center(w_core) + side(w_side) ) 
-    >>> dir(strip)              # will show functions of the Waveguide object
+    >>> dir(strip)              # will show functions available in the Waveguide object
     >>> help(strip.buildNode)   # show help on the Waveguide.buildNode() method
 
 after strip.calc(), try
@@ -44,8 +47,10 @@ pf.connect()    # connect to the FimmWave application, which must already runnin
 
 
 # Set global Parameters (Your copy of FIMMWAVE has default values for these. You can change more than shown here. See `dir(pyfimm)`, `help(pyfimm)`, or open the file `pyFIMM/__pyfimm.py`
-import sys
-pf.set_working_directory(sys.path[0])     # Set this directory to the location of your script, which is given by sys.path[0]
+import sys, os
+ScriptPath, ScriptFile = os.path.split( os.path.realpath(__file__)  )                    # Get directory of this script
+
+pf.set_working_directory(ScriptPath)     # Set this directory to the location of your script, which is usually given by sys.path[0]
 pf.set_eval_type('n_eff')    # FIMMWAVE will label modes by the effective index (options: n_eff or beta)
 pf.set_mode_finder_type('stable')   # options: stable or fast
 pf.set_mode_solver('vectorial FMM real')    # Three words, any permuation of: 'vectorial/semivecTE/semivecTM FDM/FMM real/complex'
@@ -104,6 +109,9 @@ strip.mode(0).plot()        # Plot the fundamental mode with python!
 strip.mode('all').plot(title='Strip WG: All Modes')    # plot all the calc'd modes (3 in this case) on one figure 
 
 
+ns = "app.subnodes[7].subnodes[1].evlist.list[1].profile.data"
+fs="mode1_pyFIMM.amf"
+pf.get_amf_data(ns, fs)
 #strip.delete()         # delete FIMMWAVE nodes if you want to!
 #wg_prj.delete()
 

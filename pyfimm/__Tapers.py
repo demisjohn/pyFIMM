@@ -1,17 +1,16 @@
 '''Tapered waveguide classes, part of pyFIMM.'''
 
-from __pyfimm import *       # import the main module (should already be imported), includes many 'rect' classes/funcs
 
 from __globals import *         # import global vars & FimmWave connection object
 
-from __Mode import *            # import Mode class
-from __Waveguide import *       # import Waveguide class
-from __Circ import *            # import Circ class
 
+from __pyfimm import *       # import the main module (should already be imported), includes many 'rect' classes/funcs
+from __Mode import Mode            # import Mode class
+from __Waveguide import Waveguide       # import Waveguide class
+from __Circ import Circ            # import Circ class
 #from __pyfimm import DEBUG()        # Value is set in __pyfimm.py
-
 from numpy import inf              # infinity, for hcurv/bend_radius
-import numpy as np              # math
+#import numpy as np              # math
 
 
 class Taper(Node):
@@ -45,12 +44,12 @@ class Taper(Node):
     
     """
     def __init__(self,*args):
-        if len(args) >=1:
-            self.autorun = True     # unused?
-            self.name=None     # unused?
-            self.built=False     # unused?
-            self.length=0.0     # unused?
-            self.__materialdb = None     # unused?
+        self.autorun = True     # unused?
+        self.name=None     # unused?
+        self.built=False     # unused?
+        self.length=0.0     # unused?
+        self.__materialdb = None     # unused?
+        self.origin = 'pyfimm'      # this one is used!
     
         if len(args) == 2:
             self.type = 'taper'
@@ -232,7 +231,8 @@ class Lens(Node):
         #self.__materialdb = None     # unused?
         self.bend_radius = inf    # inf means straight
         self.built=False     
-        self.autorun = True     
+        self.autorun = True   
+        self.origin = 'pyfimm'  
         
         #if len(args) == 1:
         self.type = 'wglens'    # unused!
