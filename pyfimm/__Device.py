@@ -1,21 +1,20 @@
 '''Device class, part of pyFIMM.'''
 
 from __pyfimm import *      # import the main module (should already be imported)
-#  NOTE: should have to duplicate the entire pyfimm file here!  Should just import the funcs we need...
+#  NOTE: shouldn't have to duplicate the entire pyfimm file here!  Should just import the funcs we need...
 
 from __globals import *         # import global vars & FimmWave connection object
-# DEBUG() variable is also set in __globals
+# DEBUG() variable is also set in __globals, & numpy as np & pyplot as plt
 
-''' Moved into __globals.py:
-from __Waveguide import *   # rectangular waveguide class
-from __Circ import *        # cylindrical (fiber) waveguide class
-from __Tapers import *      # import Taper/WGLens classes
+from __Waveguide import Waveguide   # rectangular waveguide class
+from __Circ import Circ        # cylindrical (fiber) waveguide class
+from __Tapers import Taper,Lens      # import Taper/WGLens classes
 from __Mode import Mode     # import Mode class
-'''
 
 
-import numpy as np      # array math etc.
-import matplotlib.pyplot as plt     # plotting - to get a new figure
+## Moved to __globals.py:
+#import numpy as np      # array math etc.
+#import matplotlib.pyplot as plt     # plotting - to get a new figure
 
 
 
@@ -571,7 +570,7 @@ class Device(Node):
         
         if side == 'left' or side == 'l' or side == 'lhs':
             if amplitude_list is None:  amplitude_list = self.input_field_left
-            n=1     # 1st element
+            n = self.elementpos[0]     # 1st element
         elif side == 'right' or side == 'r' or side == 'rhs':
             if amplitude_list is None:  amplitude_list = self.input_field_right
             n = self.elementpos[-1]     # last element
