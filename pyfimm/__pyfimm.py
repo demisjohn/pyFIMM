@@ -35,7 +35,6 @@ Also in this file are the pyFIMM global parameters - set_wavelength, set_N etc. 
 
 
 from __globals import *         # import global vars & FimmWave connection object `fimm`
-print "**** __pyfimm.py: Finsihed importing __globals.py"
 
 
 import numpy as np

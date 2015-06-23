@@ -1,10 +1,10 @@
 '''Device class, part of pyFIMM.'''
 
-from __pyfimm import *      # import the main module (should already be imported)
-#  NOTE: shouldn't have to duplicate the entire pyfimm file here!  Should just import the funcs we need...
-
 from __globals import *         # import global vars & FimmWave connection object
 # DEBUG() variable is also set in __globals, & numpy as np & pyplot as plt
+
+from __pyfimm import *      # import the main module (should already be imported)
+#  NOTE: shouldn't have to duplicate the entire pyfimm file here!  Should just import the funcs we need...
 
 from __Waveguide import Waveguide   # rectangular waveguide class
 from __Circ import Circ        # cylindrical (fiber) waveguide class
@@ -1741,29 +1741,34 @@ class Device(Node):
 
 
 # Create new Device objects by importing from another Project:
-def __import_device( self, project, fimmpath, name=None, overwrite=False, warn=True ):
-    '''Add a new Device object to this Project from another pyFIMM Project.
-    The Project should have been created in pyFIMM beforehand.  To grab a Device from a file, use `newprj = pyFIMM.import_Project()` to generate the Project from a file, and then call `newprj.import_Device()`.
-    To ensure the imported Device can reference the needed Waveguides/Slabs from the original Project, it is best if the required waveguide/slab nodes are subnodes of the original device - they will then be copied automatically into the new Project (just copy/paste the nodes into the Device Node, and use `DevNode.cdev.eltlist[<num>].setswg( "<pathToSWG>" )` to change the reference).  Or use the function `Project.import_Node()`.
-    import_device() will not load the elements and waveguides used in the Device's construction.  This is to enable the use of the many complex element types available in FimmProp that aren't supported by pyFIMM - for example etch/grow paths, various types of joints etc.  These specialized elements/joints won't be inspected by pyFIMM, but you can still connect your Device to other elements, launch/retrieve fields etc. via pyFIMM.
+def _import_device( obj='device', project=None, fimmpath=None, name=None, overwrite=False, warn=True ):
+    '''This function allows you to use the FimmProp GUI for Device construction, and then interact with those Devices via pyFIMM (acquiring fields, saving plots etc.).
+    The Device's parent Project should have been created in pyFIMM beforehand.  To grab a Device from a file, use `newprj = pyFIMM.import_Project()` to generate the Project from a file, and then call `newprj.import_Device()`.
+    
+    If this function is called as a method of a pyFIMM Project object (`ProjectObj.import_device()`) then the target FimmProp Device will be copied into the calling pyFIMM Project's corresponding FimmProp project, and the device returned will point to that.
+    To ensure the imported Device can reference the needed Waveguides/Slabs from the original Project, it is easiest if the required waveguide/slab nodes are subnodes of the original device node - they will then be copied automatically into the new Project.  If this is not possible, first use the function `Project.import_Node()` to copy the required FimmProp Nodes into the calling Project.
+    
+    import_device() will not load the elements and waveguides used in the Device's construction.  This is to enable the use of the many complex element types available in FimmProp that aren't supported by pyFIMM - for example etch/grow paths, various types of joints etc.  These specialized elements/joints won't be inspected by pyFIMM, but you can still insert your Device into other Devices, launch/retrieve fields etc. via pyFIMM.
     Device.get_origin() will return 'fimm' for this new Device, indicating that the elements it contains will not point to pyFIMM waveguide objects.
 
-    Note that if your Device references other waveguide types in the Project, they can't be copied into your project automatically unless they reside as a subnode under the Device node being copied.
-
-
+    
     Parameters
     ----------
-    project : pyFIMM Project object
+    target : { 'device' | Project object }, optional
+        If this func is called from within a Project object, this argument acquires the parent Project object, ie. `self`.  The function will then attempt to copy the FimmProp Device into the calling FimmProp Project.
+        If the string 'device' is passed, the function will return new Device without copy/pasting - leaving the Device in it's original FimmProp Project.
+    
+    project : pyFIMM Project object, required
         Specify the pyFIMM Project from which to acquire the Device.
 
-    fimmpath : string
-        The FimmProp path to the Device, within the specified project.  This takes the form of something like "Dev1" if the device named "DevName" is at the top-level of the FimmProp Project, or "DevName/SubDevName" is SubDevName is under another Device node.
-
+    fimmpath : string, required
+        The FimmProp path to the Device, within the specified project.  This takes the form of something like "DevName" if the device named "DevName" is at the top-level of the FimmProp Project, or "NodeName/SubDevName" is SubDevName is under another Node.
+    
     name : string, optional
-    Optionally provide a name for the new Project node in Fimmwave.  If omitted, the Project name save in the file will be used.
+    Optionally provide a name for the new Device node in Fimmwave.  If omitted, the name found in the Project will be used.
 
     overwrite : { True | False }, optional
-        If True, will overwrite an already-open Fimmwave project that has the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.  False by default.
+        If True, will overwrite an existing Fimmwave Device if Fimmwave reports a name-conflict.  If False, will append random digits to the to Device's name.  False by default.
 
     warn : { True | False }, optional
         Print or suppress warnings when nodes will be overwritten etc.  True by default.
@@ -1801,16 +1806,26 @@ def __import_device( self, project, fimmpath, name=None, overwrite=False, warn=T
     --------
     To open a Device from a file, import the project file first:
         >> prj = pyfimm.import_project( 'C:\pyFIMM Simulations\example4 - WG Device 1.prj' )
-    Create a new Device from within that Project:
+    
+    Create a new pyFIMM Device pointing to the FimmProp Device in the imported Project:
         >>> DevObj = pyfimm.import_device( prj,  "Name Of My Device In The Project" )
     The string "Name Of..." as actually a FimmWave path, so could reference subnodes like "ParentDev/TheDeviceIWant".
-
+    
+    Or copy the Device into a new pyFIMM Project:
+        >>> prj2 = pyfimm.Project( 'New PyFIMM Project', build=True )
+        >>> DevObj = prj2.import_device( prj,  "Name Of My Device In The Project" )
+    
+    If the Device relies on other waveguides & slabs, it's easiest if those WGs/slabs are stroed as SubNodes of the Device to copy, such that they are copied along with the Device.  If they aren't stored as SubNodes, then you'll want to import those dependency nodes individually via `Project.import_node()`.
     '''
     
-    '''Note that `self` will be a Project object, once this function is added to the Project object's methods'''
+    '''Note that `obj` will be a Project object, if this function is called from the Project object's methods'''
     
-    if DEBUG(): print "import_device( %s, %s )"%(project.name, fimmpath)
-
+    if (project is None) or (fimmpath is None):
+        ErrStr = "import_device(): The `project` and `fimmpath` arguments are required! Please specify these parameters."
+        raise ValueError( ErrStr )
+    
+    if DEBUG(): print "import_device( project.name='%s', fimmpath='%s' )"%(project.name, fimmpath)
+    
     dev = Device()      # new pyFIMM Device object
     dev.elements = None
     dev.num = None
@@ -1831,18 +1846,20 @@ def __import_device( self, project, fimmpath, name=None, overwrite=False, warn=T
         ErrStr = "The referenced node `%s` is not a FimmProp Device or couldn't be found!\n\t"%(fimmpath) + "FimmWave returned object type of:\n\t`%s`."%(ret)
         raise ValueError(ErrStr)
     
-    # copy the Device into this project:
-    #   update device's references:
-    dev.set_parent(self)
-    N_nodes = fimm.Exec(self.nodestring+".numsubnodes")
-    dev.num = int(N_nodes)+1
-    dev.nodestring = self.nodestring + ".subnodes[%i]"%(dev.num)
-    #   check node name, overwrite existing Dev if needed, modify dev's name:
-    dev.name, samenodenum = check_node_name( dev.name, nodestring=self.nodestring, overwrite=overwrite, warn=warn )    
-    fimm.Exec( dev.nodestring + ".copy()" )
-    fimm.Exec( self.nodestring + '.paste( "%s" )'%(dev.name)  )
-    
-    
+    if isinstance( obj, Project):
+        '''This Function was called as a method of the Project object'''
+        # copy the Device into this project:
+        fimm.Exec( dev.nodestring + ".copy()" )     # copy to system clipboard
+        
+        #   update device's references:
+        dev.set_parent(obj)
+        N_nodes = fimm.Exec(obj.nodestring+".numsubnodes")
+        dev.num = int(N_nodes)+1
+        dev.nodestring = obj.nodestring + ".subnodes[%i]"%(dev.num)
+        
+        #   check node name, overwrite existing/modify dev's name Dev if needed:
+        dev.name, samenodenum = check_node_name( dev.name, nodestring=obj.nodestring, overwrite=overwrite, warn=warn )    
+        fimm.Exec( obj.nodestring + '.paste( "%s" )'%(dev.name)  ) # paste into this project
     
     
     dev.built = True
@@ -1886,9 +1903,9 @@ def __import_device( self, project, fimmpath, name=None, overwrite=False, warn=T
     
     
     
-    '''
+    ''' Techniques in FimmProp to do the above:
     Let FimMWave find the node for us:
-    Ref& R = app.subnodes[1].findnode(WG Device) - no quotes!
+    Ref& R = app.subnodes[1].findnode(WG Device) - no quotes, or double-quotes!
 
     R.objtype
     FPDeviceNode
@@ -1957,4 +1974,25 @@ Device_187734.cdev.eltlist[3].getrefid()
 #end import_device()
 
 # Alias to the same function, added to the Project object:
-Project.import_device = __import_device
+Project.import_device = _import_device
+
+
+def import_device(project, fimmpath, name=None, overwrite=False, warn=True ):
+    ''' Please see `help(pyfimm._import_device)` for complete help, the following is only partial documentation.
+    This function will return a new pyFIMM Device object pointing to a Device that exists in an imported Project (ie. one created in FimmProp & loaded from a file, rather than via pyFIMM).
+    This allows you to use the FimmProp GUI for Device construction, and then interact with those Devices via pyFIMM (acquiring fields, saving plots etc.).
+    
+    
+    Parameters
+    ----------
+    project : pyFIMM Project object, required
+        Specify the pyFIMM Project from which to acquire the Device.
+
+    fimmpath : string, required
+        The FimmProp path to the Device, within the specified project.  This takes the form of something like "DevName" if the device named "DevName" is at the top-level of the FimmProp Project, or "NodeName/SubDevName" is SubDevName is under another Node.
+    
+    name : string, optional
+    Optionally provide a name for the new Device node in Fimmwave.  If omitted, the name found in the Project will be used.
+
+    '''
+    return _import_device('device', project, fimmpath, name=None, overwrite=False, warn=True )

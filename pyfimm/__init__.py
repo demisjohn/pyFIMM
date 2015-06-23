@@ -5,7 +5,7 @@ The interface is set up like Peter Beinstman's CAMFR (CAvity Modelling FRamework
 Photon Design's pdPythonLib is included in the module.
 
 Originally created by Jared Bauters at the University of California Santa Barbara in 2011.
-Updated by Demis D. John, 2015
+Updated by Demis D. John, 2015.
 
 
 Examples
@@ -112,7 +112,7 @@ print "pyFIMM", version.pyfimm_version, ""
 print "Python Interface to Photon Design's FIMMWave software package."
 print "Based on Peter Beinstman's CAMFR (CAvity Modelling FRamework) interface."
 print
-print "Created by Jared Bauters & Demis D. John at the University of California, Santa Barbara."
+print "Created by Jared Bauters University of California, Santa Barbara & updated by Demis D. John."
 print
 
 
