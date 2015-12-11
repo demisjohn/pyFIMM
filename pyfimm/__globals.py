@@ -47,7 +47,7 @@ from numpy import inf           # infinity, for hcurv/bend_radius
 #import numpy as np              # math
 '''
 
-#print "**** __globals.py: Finsihed importing pyFIMM modules"
+#print "**** __globals.py: Finished importing pyFIMM modules"
 
 global pf_DEBUG
 pf_DEBUG = False   # set to true for verbose outputs onto Python console - applies to all submodules/files

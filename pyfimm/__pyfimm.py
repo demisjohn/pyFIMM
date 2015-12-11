@@ -64,7 +64,7 @@ def connect(hostname='localhost', port=5101):
     fimm.ConnectToApp(hostname=hostname, portNo=port)
     '''Check the connection:    '''
     try:
-        NumSubnodes = int(  fimm.Exec("app.numsubnodes")  )
+        NumSubnodes = int(  fimm.Exec("app.numsubnodes()")  )
         print "Connected! (%i Project nodes found)"%NumSubnodes
     except:
         ErrStr = "Unable to connect to Fimmwave app - make sure it is running & license is active."
