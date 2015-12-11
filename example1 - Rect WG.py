@@ -104,14 +104,12 @@ strip.buildNode()       # You must always build the node!
 print "Calculating Modes..."
 strip.calc()           # Tell FIMMWAVE to solve for the modes!
 
-strip.mode(0).plot()        # Plot the fundamental mode with python!
+#strip.mode(0).plot()        # Plot the fundamental mode with python!
 #strip.mode(0).plot('Ey')    # plot Ey instead
 strip.mode('all').plot(title='Strip WG: All Modes')    # plot all the calc'd modes (3 in this case) on one figure 
+#strip.mode( [0,2] ).plot()    # plot only modes #0 and 2
 
 
-ns = "app.subnodes[7].subnodes[1].evlist.list[1].profile.data"
-fs="mode1_pyFIMM.amf"
-pf.get_amf_data(ns, fs)
 #strip.delete()         # delete FIMMWAVE nodes if you want to!
 #wg_prj.delete()
 
