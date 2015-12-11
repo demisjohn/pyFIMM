@@ -2,19 +2,21 @@
 
 
 from __globals import *     # import global vars & FimmWave connection object
-    # also contains AMF_FolderStr(), DEBUG(), numpy as np & pyploy as plt
+# also contains AMF_FolderStr(), DEBUG(), numpy as np & pyplot as plt
 
 
-#from pylab import *     # must kill these global namespace imports!!!
-#from numpy import *
-#import pylab as pl
-#import matplotlib.pyplot as plt
 from pylab import cm    # color maps
-#import numpy as np
 import math
 import os  # for filepath manipulations (os.path.join/os.mkdir/os.path.isdir)
 
 from __pyfimm import get_N, get_wavelength
+
+
+#from pylab import *     # no more global namespace imports
+#from numpy import *
+#import pylab as pl     # use numpy instead (imported as np)
+#import matplotlib.pyplot as plt    # now imported in Globals.py
+#import numpy as np
 
 #AMF_FileStr = 'pyFIMM_temp'
 
