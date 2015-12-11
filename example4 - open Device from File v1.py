@@ -2,7 +2,7 @@
 ##########################################################################
 
  Example 4:
-     Import a Project from File, and insert a Device into a new Device
+     Import a Project from File, and insert a Device from File into a new Project
 
 ##########################################################################
 '''
@@ -68,7 +68,8 @@ myprj.buildNode('Example 4 - Import Device', overwrite=True)
 # Open a saved Project file:
 openedprj = pf.import_Project('T:\Python Work\pyFIMM Simulations\example4 - WG Device 1.prj')
 ''' 
-`openedprj` now refers to the opened Project file, which contains the Device we want to add to our own Project    
+`openedprj` now refers to the opened Project file, which contains the Device we want to add to our own Project  
+You can optionally provide a name to use in FimMWave, along with the usual `overwrite` and `warn` options.  
 '''
 
 
