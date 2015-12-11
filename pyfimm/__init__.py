@@ -103,12 +103,12 @@ after strip.calc(), try
 '''
 
 import __version as version    # file with the version number.
-__version__ = version.__version__
-__versiondate__ = version.__versiondate__
+version = version.versionnum
+versiondate = version.versiondate
 
 # Splash screen.
 print
-print "pyFIMM", version.pyfimm_version, ""
+print "pyFIMM", version.version, ""
 print "Python Interface to Photon Design's FIMMWave software package."
 print "Based on Peter Beinstman's CAMFR (CAvity Modelling FRamework) interface."
 print
