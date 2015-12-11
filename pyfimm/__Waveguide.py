@@ -12,6 +12,7 @@ from __Mode import Mode            # import Mode class
 from numpy import inf           # infinity, for hcurv/bend_radius
 
 
+
 class Waveguide(Node):
     """pyFimm Waveguide object, a collection of concatenated Slices.  
     
