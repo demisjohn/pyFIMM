@@ -187,7 +187,7 @@ class Mode:
             If a single-value is returned, by defualt it's de-listed (just a float/int).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.'''
         out=[]
         for num in self.list_num:
-            out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].neff")  )
+            out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].neff()")  )
         
         if len(self.list_num) == 1 and as_list==False:
             out = out[0]
@@ -233,10 +233,10 @@ class Mode:
         ----------
         as_list : boolean, optional
             If a single-value is returned, by defualt it's de-listed (just a float/int).  If `as_list=True`, then it is returned as a single-element list - useful when iterating multiple modes.  False by default.'''
-        #return fimm.Exec(self.modeString+"list[{"+str(self.list_num)+"}].beta")
+        #return fimm.Exec(self.modeString+"list[{"+str(self.list_num)+"}].beta()")
         out=[]
         for num in self.list_num:
-            out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].beta")  )
+            out.append(  fimm.Exec(self.modeString + "list[{" + str(num) + "}].beta()")  )
         
         if len(self.list_num) == 1 and as_list==False:
             out = out[0]
@@ -551,7 +551,7 @@ class Mode:
         "list["+str(self.list_num)+"].profile.data.getfieldarray("+comp+","+pml+")  \n\t f.fieldarray" 
         
         # Check if modes have been calc()'d:
-        a = fimm.Exec(self.modeString+"list["+str(self.list_num[0])+"].profile.update")
+        a = fimm.Exec(self.modeString+"list["+str(self.list_num[0])+"].profile.update()")
         # Check if modes have been calc()'d:
         if DEBUG(): print "field():  #",a[:-2].strip(),'#\n'
         if a[:-2].strip() != '':
@@ -586,7 +586,7 @@ class Mode:
             num = self.list_num[0]
             
         # Check if modes have been calc()'d:
-        a = fimm.Exec(self.modeString+"list["+str(num)+"].profile.update"+"\n")
+        a = fimm.Exec(self.modeString+"list["+str(num)+"].profile.update()"+"\n")
         # Check if modes have been calc()'d:
         if DEBUG(): print "P():  #",a[:-2].strip(),'#\n'
         if a[:-2].strip() != '':
@@ -610,19 +610,19 @@ class Mode:
         fout = open("nxy"+str(num)+"_pyFIMM.txt", "w")
         fout.writelines(nxy_data)
         fout.close()
-        nxy = pl.loadtxt("nxy"+str(num)+"_pyFIMM.txt", comments='//')
+        nxy = np.loadtxt("nxy"+str(num)+"_pyFIMM.txt", comments='//')
         nx = int(nxy[0])
         ny = int(nxy[1])
 
         fout = open("xy"+str(num)+"_pyFIMM.txt", "w")
         fout.writelines(xy_data)
         fout.close()
-        xy = pl.loadtxt("xy"+str(num)+"_pyFIMM.txt", comments='//')
+        xy = np.loadtxt("xy"+str(num)+"_pyFIMM.txt", comments='//')
         
         fout = open("slvr"+str(num)+"_pyFIMM.txt", "w")
         fout.writelines(slvr_data)
         fout.close()
-        iscomplex = pl.loadtxt("slvr"+str(num)+"_pyFIMM.txt", comments='//')
+        iscomplex = np.loadtxt("slvr"+str(num)+"_pyFIMM.txt", comments='//')
         
          # Resave Files
         fout = open("Ex"+str(num)+"_pyFIMM.txt", "w")
@@ -641,10 +641,10 @@ class Mode:
         del data_list
         
         # Get Data
-        Ex = pl.loadtxt("Ex"+str(num)+"_pyFIMM.txt")
-        Ey = pl.loadtxt("Ey"+str(num)+"_pyFIMM.txt")
-        Hx = pl.loadtxt("Hx"+str(num)+"_pyFIMM.txt")
-        Hy = pl.loadtxt("Hy"+str(num)+"_pyFIMM.txt")
+        Ex = np.loadtxt("Ex"+str(num)+"_pyFIMM.txt")
+        Ey = np.loadtxt("Ey"+str(num)+"_pyFIMM.txt")
+        Hx = np.loadtxt("Hx"+str(num)+"_pyFIMM.txt")
+        Hy = np.loadtxt("Hy"+str(num)+"_pyFIMM.txt")
         
         Ex = np.array(Ex)
         Ey = np.array(Ey)
@@ -776,7 +776,7 @@ class Mode:
         
         
         # Check if modes have been calc()'d:
-        a = fimm.Exec(self.modeString+"list["+str(self.list_num[0])+"].profile.update")
+        a = fimm.Exec(self.modeString+"list["+str(self.list_num[0])+"].profile.update()")
         # Check if modes have been calc()'d:
         if DEBUG(): print "plot():  #",a[:-2].strip(),'#\n'
         if a[:-2].strip() != '':
@@ -846,7 +846,7 @@ class Mode:
             fout = open(nxyFile, "w")
             fout.writelines(nxy_data)
             fout.close()
-            nxy = pl.loadtxt(nxyFile, comments='//')
+            nxy = np.loadtxt(nxyFile, comments='//')
             nx = int(nxy[0])
             ny = int(nxy[1])
             
@@ -854,13 +854,13 @@ class Mode:
             fout = open(xyFile, "w")
             fout.writelines(xy_data)
             fout.close()
-            xy = pl.loadtxt(xyFile, comments='//')
+            xy = np.loadtxt(xyFile, comments='//')
             
             slvrFile = os.path.join( AMF_FolderStr(), "mode" + str(num) + "_pyFIMM_slvr.txt")
             fout = open(slvrFile, "w")
             fout.writelines(slvr_data)
             fout.close()
-            iscomplex = pl.loadtxt(slvrFile, comments='//')
+            iscomplex = np.loadtxt(slvrFile, comments='//')
         
             # Find Field Component
             if field_cpt_in == None:
@@ -898,10 +898,10 @@ class Mode:
             
             # Get Data
             if iscomplex == 1:
-                field_real = pl.loadtxt(mode_FileStr, usecols=tuple([i for i in range(0,2*ny+1) if i%2==0]))
-                field_imag = pl.loadtxt(mode_FileStr, usecols=tuple([i for i in range(0,2*ny+2) if i%2!=0]))
+                field_real = np.loadtxt(mode_FileStr, usecols=tuple([i for i in range(0,2*ny+1) if i%2==0]))
+                field_imag = np.loadtxt(mode_FileStr, usecols=tuple([i for i in range(0,2*ny+2) if i%2!=0]))
             else:
-                field_real = pl.loadtxt(mode_FileStr)
+                field_real = np.loadtxt(mode_FileStr)
             
             '''field_real = np.real(field)'''
             
@@ -912,7 +912,7 @@ class Mode:
             yStart = xy[2]
             yEnd = xy[3]
             
-            im = axis.imshow(pl.rot90(abs(field_real),1), cmap=cm.hot, aspect='auto', extent=(xStart,xEnd,yStart,yEnd))
+            im = axis.imshow(np.rot90(abs(field_real),1), cmap=cm.hot, aspect='auto', extent=(xStart,xEnd,yStart,yEnd))
             im.set_interpolation('bilinear')
             ims.append(im)
 

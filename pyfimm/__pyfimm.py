@@ -144,10 +144,10 @@ def check_node_name( name, nodestring="app", overwrite=False, warn=True ):
     >>> fimm.Exec(    "app.addsubnode(fimmwave_prj," + str(  prjname  ) + ")"    )
     
     '''
-    N_nodes = int(  fimm.Exec(nodestring+".numsubnodes")  )
+    N_nodes = int(  fimm.Exec(nodestring+".numsubnodes()")  )
     SNnames = []    #subnode names
     for i in range(N_nodes):
-        SNnames.append(  strip_txt(  fimm.Exec(nodestring+r".subnodes["+str(i+1)+"].nodename")  )  )   
+        SNnames.append(  strip_txt(  fimm.Exec(nodestring+r".subnodes["+str(i+1)+"].nodename()")  )  )   
         # trim whitespace via string's strip(), strip the two EOL chars '\n\x00' from end via indexing [:-2]
     # check if node name is in the node list:
     sameprojidx = np.where( np.array(SNnames) == np.array([name]) )[0]
@@ -161,7 +161,7 @@ def check_node_name( name, nodestring="app", overwrite=False, warn=True ):
             if sameprojidx == N_nodes:
                 '''It is the last node entry, so delete the offending identically-named node'''
                 if warn: print "node '%s'.buildNode(): Deleting existing Node # %s"%(name,str(sameprojidx)) + ", `%s`."%(sameprojname)
-                fimm.Exec( nodestring + ".subnodes[%i].delete"%(sameprojidx) )
+                fimm.Exec( nodestring + ".subnodes[%i].delete()"%(sameprojidx) )
             else:
                 '''It is not the last entry in the node list, so we can't delete it without breaking other pyFIMM references.'''
                 # change the name of offending node:
@@ -216,14 +216,14 @@ def close_all(warn=True):
         True by default, which will prompt user for confirmation.
     '''
     nodestring="app"   # top-level, deleting whole Projects
-    N_nodes = int(  fimm.Exec(nodestring+".numsubnodes")  )
+    N_nodes = int(  fimm.Exec(nodestring+".numsubnodes()")  )
     
     wstr = "Will close" if warn else "Closing"
     
     WarnStr = "WARNING: %s all the following open Projects,\n\tdiscarding unsaved changes:\n"%(wstr)
     SNnames = []    #subnode names
     for i in range(N_nodes):
-        SNnames.append(  strip_txt(  fimm.Exec(nodestring+r".subnodes["+str(i+1)+"].nodename")  )  )   
+        SNnames.append(  strip_txt(  fimm.Exec(nodestring+r".subnodes["+str(i+1)+"].nodename()")  )  )   
         WarnStr = WarnStr + "\t%s\n"%(SNnames[-1])
     
     print WarnStr
@@ -362,10 +362,10 @@ class Node(object):
         """
         ## Check if top-level node name conflicts with one already in use:
         #AppSubnodes = fimm.Exec("app.subnodes")        # The pdPythonLib didn't properly handle the case where there is only one list entry to return.  Although we could now use this function, instead we manually get each subnode's name:
-        N_nodes = int(  fimm.Exec("app.numsubnodes")  )
+        N_nodes = int(  fimm.Exec("app.numsubnodes()")  )
         SNnames = []
         for i in range(N_nodes):
-            SNnames.append(  fimm.Exec(r"app.subnodes["+str(i+1)+"].nodename").strip()[:-2]  )   
+            SNnames.append(  fimm.Exec(r"app.subnodes["+str(i+1)+"].nodename()").strip()[:-2]  )   
             # trim whitespace with string's strip(), strip the EOL chars '\n\x00' from end with indexing [:-2]
         
         # check if node name is in the node list:
@@ -377,7 +377,7 @@ class Node(object):
                 '''delete the offending identically-named node'''
                 if warn: print "Deleting Node #" + str(sameprojname) + " `" + SNnames[sameprojname] + "`."
                 sameprojname = sameprojname[0]+1
-                fimm.Exec("app.subnodes["+str(sameprojname)+"].delete")
+                fimm.Exec("app.subnodes["+str(sameprojname)+"].delete()")
             else: 
                 '''change the name of this new node'''
                 if warn: print "WARNING: Node name `" + self.name + "` already exists;"
@@ -413,10 +413,10 @@ class Node(object):
             '''
         ## Check if top-level node name conflicts with one already in use:
         #AppSubnodes = fimm.Exec("app.subnodes")        # The pdPythonLib didn't properly handle the case where there is only one list entry to return.  Although we could now use this function, instead we manually get each subnode's name:
-        N_nodes = int(  fimm.Exec(nodestring+".numsubnodes")  )
+        N_nodes = int(  fimm.Exec(nodestring+".numsubnodes()")  )
         SNnames = []    #subnode names
         for i in range(N_nodes):
-            SNnames.append(  fimm.Exec(nodestring+r".subnodes["+str(i+1)+"].nodename").strip()[:-2]  )   
+            SNnames.append(  fimm.Exec(nodestring+r".subnodes["+str(i+1)+"].nodename()").strip()[:-2]  )   
             # trim whitespace via string's strip(), strip the two EOL chars '\n\x00' from end via indexing [:-2]
         # check if node name is in the node list:
         sameprojname = np.where( np.array(SNnames) == np.array([self.name]) )[0]
@@ -427,7 +427,7 @@ class Node(object):
                 '''delete the offending identically-named node'''
                 if warn: print "Overwriting existing Node #" + str(sameprojname) + ", `" + SNnames[sameprojname] + "`."
                 sameprojname = sameprojname[0]+1
-                fimm.Exec(nodestring+".subnodes["+str(sameprojname)+"].delete")
+                fimm.Exec(nodestring+".subnodes["+str(sameprojname)+"].delete()")
             else: 
                 '''change the name of this new node'''
                 if warn: print "WARNING: Node name `" + self.name + "` already exists;"
@@ -544,10 +544,10 @@ class Project(Node):
         """ Deprecated - using check_node_name() instead.
         ## Check if top-level (project) node name conflicts with one already in use:
         #AppSubnodes = fimm.Exec("app.subnodes")        # The pdPythonLib didn't properly handle the case where there is only one list entry to return.  Although we could now use this function, instead we manually get each subnode's name:
-        N_nodes = int(  fimm.Exec("app.numsubnodes")  )
+        N_nodes = int(  fimm.Exec("app.numsubnodes()")  )
         SNnames = []    #subnode names
         for i in range(N_nodes):
-            SNnames.append(  fimm.Exec(r"app.subnodes["+str(i+1)+"].nodename").strip()[:-2]  )   
+            SNnames.append(  fimm.Exec(r"app.subnodes["+str(i+1)+"].nodename()").strip()[:-2]  )   
             # trim whitespace via string's strip(), strip the two EOL chars '\n\x00' from end via indexing [:-2]
         
         # check if node name is in the node list:
@@ -560,7 +560,7 @@ class Project(Node):
                 '''delete the offending identically-named node'''
                 print self.name + ".buildNode(): Overwriting existing Node #" + str(sameprojidx) + ", `" + SNnames[sameprojidx] + "`."
                 sameprojidx = sameprojidx[0]+1
-                fimm.Exec("app.subnodes["+str(sameprojidx)+"].delete")
+                fimm.Exec("app.subnodes["+str(sameprojidx)+"].delete()")
             else: 
                 '''change the name of this new node'''
                 print self.name + ".buildNode(): WARNING: Node name `" + self.name + "` already exists;"
@@ -578,7 +578,7 @@ class Project(Node):
         
         
         '''Create the new node:     '''
-        N_nodes = fimm.Exec("app.numsubnodes")
+        N_nodes = fimm.Exec("app.numsubnodes()")
         node_num = int(N_nodes)+1
         fimm.Exec("app.addsubnode(fimmwave_prj,"+str(self.name)+")")
         self.num = node_num
@@ -694,14 +694,14 @@ def import_project(filepath, name=None, overwrite=False, warn=True):
         if overwrite:
             '''delete the offending identically-named node'''
             if warn: print "Overwriting existing Node #" + str(samenodenum) + ", '%s'." % prjname
-            fimm.Exec(nodestring+".subnodes["+str(samenodenum)+"].delete")
+            fimm.Exec(nodestring+".subnodes["+str(samenodenum)+"].delete()")
             newprjname = prjname    #use orig name
     #end if(project already exists)
     """
     
     
     '''Create the new node:     '''
-    N_nodes = fimm.Exec("app.numsubnodes")
+    N_nodes = fimm.Exec("app.numsubnodes()")
     node_num = int(N_nodes)+1
     if DEBUG(): print "import_project(): app.subnodes ", N_nodes, ", node_num = ", node_num
     '''app.openproject: FUNCTION - ( filename[, nodename] ): open the specified project with the specified node name'''
@@ -713,7 +713,7 @@ def import_project(filepath, name=None, overwrite=False, warn=True):
     prj.built = True
     prj.savepath = savepath
     prj.nodestring = "app.subnodes[%i]"%(prj.num)
-    prj.name = strip_txt(  fimm.Exec(  "%s.nodename "%(prj.nodestring)  )  )
+    prj.name = strip_txt(  fimm.Exec(  "%s.nodename() "%(prj.nodestring)  )  )
     prj.origin = 'fimmwave'
     
     

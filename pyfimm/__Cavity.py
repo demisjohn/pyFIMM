@@ -110,7 +110,7 @@ class Cavity(object):
     def __init__(self, *args, **kwargs):
         '''Please see help(Cavity) for usage info.'''
         
-        #if DEBUG(): print "Cavity() connection test: " + str(fimm.Exec("app.numsubnodes"))
+        #if DEBUG(): print "Cavity() connection test: " + str(fimm.Exec("app.numsubnodes()"))
         
         if len(args) >= 2:
             self.LHS_Dev = args[0]
@@ -461,9 +461,9 @@ class Cavity(object):
             fimm.Exec("fpRHS.lambda="+str(wavelength))  # set Device-specific wavelength
             fimm.Exec("fpLHS.lambda="+str(wavelength))
             # this reset is an attempt to prevent memory issues
-            fimm.Exec("fpRHS.reset1")
-            fimm.Exec("fpLHS.reset1")
-            fimm.Exec("fpRHS.update")   # calc the Scattering Matrix
+            fimm.Exec("fpRHS.reset1()")
+            fimm.Exec("fpLHS.reset1()")
+            fimm.Exec("fpRHS.update()")   # calc the Scattering Matrix
             RRHS = np.zeros([N,N],dtype=complex)
             SMAT = []
             for i in range(1,N+1,1):
@@ -481,7 +481,7 @@ class Cavity(object):
             
             
             
-            fimm.Exec("fpLHS.update")
+            fimm.Exec("fpLHS.update()")
             
             
             # update progress bar:

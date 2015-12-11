@@ -279,7 +279,7 @@ class Waveguide(Node):
     def calc(self):
         '''Calculate/Solve for the modes of this Waveguide.  Build the node if needed.'''
         if not self.built: self.buildNode()
-        fimm.Exec("app.subnodes[{"+str(self.parent.num)+"}].subnodes[{"+str(self.num)+"}].evlist.update")
+        fimm.Exec("app.subnodes[{"+str(self.parent.num)+"}].subnodes[{"+str(self.num)+"}].evlist.update()")
 
     def set_autorun(self):
         '''FimmProp Device will automatically calculate modes as needed.'''
@@ -418,7 +418,7 @@ class Waveguide(Node):
         nodestring="app.subnodes["+str(self.parent.num)+"]"
         self._checkNodeName(nodestring, overwrite=overwrite, warn=warn)     # will alter the node name if needed
         
-        N_nodes = fimm.Exec("app.subnodes["+str(self.parent.num)+"].numsubnodes")
+        N_nodes = fimm.Exec("app.subnodes["+str(self.parent.num)+"].numsubnodes()")
         node_num = int(N_nodes+1)
         self.num = node_num    
         
@@ -811,7 +811,7 @@ class Waveguide(Node):
         if parentNode: self.parent = parentNode
         if DEBUG(): print self.name + ".buildNode(): self.parent.num=", self.parent.num
         
-        N_nodes = fimm.Exec("app.subnodes["+str(self.parent.num)+"].numsubnodes")
+        N_nodes = fimm.Exec("app.subnodes["+str(self.parent.num)+"].numsubnodes()")
         node_num = int(N_nodes+1)
         self.num = node_num        
         self.BuildRectNode()    

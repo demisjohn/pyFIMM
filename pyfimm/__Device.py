@@ -583,7 +583,7 @@ class Device(Node):
         
         # calculate modes of the element:
         if DEBUG(): print 'Device "%s"' % self.name + '.plot_input_field(): Calculating modes of element %i...' % n
-        fimm.Exec(  self.nodestring + ".cdev.eltlist[%i].wg.evlist.update" % n  )
+        fimm.Exec(  self.nodestring + ".cdev.eltlist[%i].wg.evlist.update()" % n  )
         
         modes =  Mode(self, modelist, self.nodestring + ".cdev.eltlist[%i].wg.evlist." % n   )
         fields = modes.get_field(  component  , include_pml=include_pml, as_list=True ) # returns list of all the fields
@@ -1256,8 +1256,8 @@ class Device(Node):
         
         self.jointpos = []    # eltlist[] position of simple joints
         self.elementpos = []  # eltlist[] position of each waveguide element
-        #N_nodes = fimm.Exec("app.subnodes["+str(self.parent.num)+"].numsubnodes")
-        N_nodes = fimm.Exec( self.parent.nodestring+".numsubnodes")
+        #N_nodes = fimm.Exec("app.subnodes["+str(self.parent.num)+"].numsubnodes()")
+        N_nodes = fimm.Exec( self.parent.nodestring+".numsubnodes()")
         node_num = int(N_nodes)+1
         self.num = node_num
         prj_num = self.parent.num
@@ -1583,7 +1583,7 @@ class Device(Node):
         
         self.jointpos = []    # eltlist[] position of simple joints
         self.elementpos = []  # eltlist[] position of each waveguide element
-        N_nodes = fimm.Exec("app.subnodes["+str(self.parent.num)+"].numsubnodes")
+        N_nodes = fimm.Exec("app.subnodes["+str(self.parent.num)+"].numsubnodes()")
         node_num = int(N_nodes)+1
         self.num = node_num
         prj_num = self.parent.num
@@ -1655,7 +1655,7 @@ class Device(Node):
         node_name = el.name         # name of Device
         wgtypestr = "fwguideNode"
         
-        subnode_num = fimm.Exec( self.nodestring + ".numsubnodes  " ); 
+        subnode_num = fimm.Exec( self.nodestring + ".numsubnodes()  " ); 
         subnode_num = int(subnode_num) + 1   # the WG node number under the Device Node
         
         el.subnodenum = subnode_num     # Which subnode the WG is built under; not sure if we'll use this later, but setting it anyway
@@ -1703,7 +1703,7 @@ class Device(Node):
         node_name = el.name
         wgtypestr = "rwguideNode"
         
-        subnode_num = fimm.Exec( self.nodestring + ".numsubnodes  " ); 
+        subnode_num = fimm.Exec( self.nodestring + ".numsubnodes()  " ); 
         subnode_num = int(subnode_num) + 1   # the WG node number under the Device Node
         
         el.subnodenum = subnode_num     # Which subnode the WG is built under; not sure if we'll use this later, but setting it anyway
@@ -1853,7 +1853,7 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
         
         #   update device's references:
         dev.set_parent(obj)
-        N_nodes = fimm.Exec(obj.nodestring+".numsubnodes")
+        N_nodes = fimm.Exec(obj.nodestring+".numsubnodes()")
         dev.num = int(N_nodes)+1
         dev.nodestring = obj.nodestring + ".subnodes[%i]"%(dev.num)
         
