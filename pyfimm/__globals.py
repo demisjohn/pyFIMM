@@ -60,8 +60,8 @@ from colormap_HotCold import cm_hotcold
 # Create FimmWave connection object.
 import PhotonDesignLib.pdPythonLib as pd
 global fimm
-fimm = pd.pdApp()
-
+fimm = pd.pdApp()   # used in all scripts to send commands, via `fimm.Exec('CommandsToSend')`
+pdApp = fimm        # alias to the above.
 
 
 

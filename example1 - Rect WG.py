@@ -42,7 +42,6 @@ after strip.calc(), try
     >>> help( strip.mode(0).plot )  # detailed help on the mode plotting function
 '''
 
-
 pf.connect()    # connect to the FimmWave application, which must already running.
 
 

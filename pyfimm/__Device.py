@@ -1749,14 +1749,14 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
     To ensure the imported Device can reference the needed Waveguides/Slabs from the original Project, it is easiest if the required waveguide/slab nodes are subnodes of the original device node - they will then be copied automatically into the new Project.  If this is not possible, first use the function `Project.import_Node()` to copy the required FimmProp Nodes into the calling Project.
     
     import_device() will not load the elements and waveguides used in the Device's construction.  This is to enable the use of the many complex element types available in FimmProp that aren't supported by pyFIMM - for example etch/grow paths, various types of joints etc.  These specialized elements/joints won't be inspected by pyFIMM, but you can still insert your Device into other Devices, launch/retrieve fields etc. via pyFIMM.
-    Device.get_origin() will return 'fimm' for this new Device, indicating that the elements it contains will not point to pyFIMM waveguide objects.
+    Device.get_origin() will return 'fimm' for this new Device, indicating that it was constructed in FimmWave and the elements it contains will not correspond to pyFIMM waveguide objects.
 
     
     Parameters
     ----------
     target : { 'device' | Project object }, optional
-        If this func is called from within a Project object, this argument acquires the parent Project object, ie. `self`.  The function will then attempt to copy the FimmProp Device into the calling FimmProp Project.
-        If the string 'device' is passed, the function will return new Device without copy/pasting - leaving the Device in it's original FimmProp Project.
+        If this func is called from within a Project object, this argument is set to the parent Project object, ie. `self`.  The function will then attempt to copy the FimmProp Device into the calling FimmProp Project.
+        If the string 'device' is passed, the function will return a new Device object without copying the FimmWave nodes - leaving the Device in it's original FimmProp Project.
     
     project : pyFIMM Project object, required
         Specify the pyFIMM Project from which to acquire the Device.
