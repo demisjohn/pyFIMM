@@ -100,26 +100,26 @@ These pyfimm scripts can be run like any typical Python script (eg. on the comma
 The preferred method is through a Python IDE like Spyder (a matlab-like IDE).  The simplest installation of Spyder (along with all typical scientific python modules) can be accomplished via [Python(x,y)](https://code.google.com/p/pythonxy/) (Win) or [Anaconda](http://continuum.io/downloads) (Mac,Win,Linux). 
 
 ### Setting up FimmWave for Scripting
-Make sure your FimmWave executable starts up with the ability to interact with external scripts like Python (see FimmWave manual section 11.9).
+Make sure your FimmWave executable starts up with the ability to interact with external scripts like Python/Matlab (see FimmWave manual section 11.9).
 To set up the scripting connection, start Fimmwave with the `-pt 5101` command-line option, to listen on port 5101. 
 
-You can do this by making a shortcut to `fimmwave.exe`, and in the *Properties* of that shortcut, add the `-pt` argument as so:
+You can do this by making a shortcut to `fimmwave.exe`, and in the *Properties* of that shortcut, add the `-pt 5101` argument as so:
 
 Shortcut Properties/**Target**= `"C:\Program Files\PhotonD\Fimmwave\bin64\fimmwave.exe" -pt 5101`
 
 Note that the argument comes outside the quotation marks.
 
-Alternatively, you can start FimMWave with the port argument from Python, by adding the following line to your Python script:
+Alternatively, you can start FimMWave with the port argument from Python, by adding the following line to the start of your Python script:
 
     import os
     os.system('"C:\\Program Files\\PhotonD\\Fimmwave\\bin64\\fimmwave.exe" -pt 5101'  )
 
-Note the single & double quotes!
+Note the single & double quotes! 
 
 
 ### Requires
 Since FimmWave & FimmProp require Windows, you must run this on a Windows system with FimmWave installed (or via a virtual-machine of some sort).  
-* FimmWave by Photon Design, setup with TCP port access (see FimmWave manual section on Python usage, sec. 11.9).
+* [FimmWave by Photon Design](http://www.photond.com/products/fimmwave.htm), setup with TCP port access (see FimmWave manual section on Python usage, sec. 11.9).
 * Python 2.7 (may work on other versions, untested)
 * numpy
 * matplotlib
