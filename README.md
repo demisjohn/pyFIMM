@@ -16,7 +16,7 @@ The interface is set up like [Peter Beinstman's CAMFR (CAvity Modelling FRamewor
 Photon Design's Python library, `pdPythonLib`, is included in the module.
 
 
-## A Brief Example
+## Brief Example
 Example of rectangular waveguide construction syntax: We will create a rectangular waveguide of SiO2 cladding and SiN core, calculate the fundamental mode & plot it. 
 
 The following assumes you imported the module via `import pyfimm`, with your script residing in the same directory as the *pyfimm* folder.  `pyfimm` could be replaced with whatever name you imported the pyFIMM module under - for example, if you imported it like so:
