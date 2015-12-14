@@ -9,14 +9,14 @@ Updated by Demis D. John, 2015.
 
 pyFIMM provides a CAMFR-like scripting interface to [Photon Design's FIMMWAVE/FIMMPROP electromagnetic/photonic simulation tools](http://www.photond.com/products/fimmwave.htm), for Python, to construct, simulate, plot and analyze photonic devices using FimmWave.  This enables one to do additional analysis and math on the simulations in python itself, and define complex Python functions or loops that use FimmWave to do the heavy-lifting of solving for modes and Scattering Matrices.  The FimmWave/FimmProp GUI contains much functionality that is not implemented by *pyFIMM* - if you'd like some PhotonDesign feature to be included in pyFIMM, feel free to contribute code or open a "proposal" Issue on the Issue tracker.
 
-Some additional analysis functions are included, based on examples provided by Photon Design.  An important capability is the ability to simulate & solve/plot the fields in an optical Cavity.  Mode-plotting is enabled by the excellent matplotlib library.
+Some additional analysis functions are included, based on examples provided by Photon Design.  Some useful features are the ability to solve/plot the fields in an optical Cavity & Mode/Field-plotting.
 
 The interface is set up like [Peter Beinstman's CAMFR (CAvity Modelling FRamework)](http://camfr.sourceforge.net) system, in which 1-D Slices are concatenated to produce arbitrary 2-D index profiles, which can be further concatenated to produce full 3-D photonic integrated circuits.
 
 Photon Design's Python library, `pdPythonLib`, is included in the module.
 
 
-## Examples
+## A Brief Example
 Example of rectangular waveguide construction syntax: We will create a rectangular waveguide of SiO2 cladding and SiN core, calculate the fundamental mode & plot it. 
 
 The following assumes you imported the module via `import pyfimm`, with your script residing in the same directory as the *pyfimm* folder.  `pyfimm` could be replaced with whatever name you imported the pyFIMM module under - for example, if you imported it like so:
@@ -83,10 +83,12 @@ You can then have FimmWave calculate the modes as so:
 And inspect the modes like so:
 
     >>> WG.mode(0).plot()   # plots the fundamental mode.
+    >>> WG.mode( 'all' ).plot()  # plots all modes on one figure
     
 Or extract field values like so:
 
-	>>> Mode1_Ex = WG.mode(1).get_field('Ex')   # Saves x-direction E-field for 2nd mode
+    >>> Mode1_Ex = WG.mode(1).get_field('Ex')   # Saves x-direction E-field for 2nd mode
+    >>> Mode0_Ex, Mode1_Ex = WG.mode( [0,1] ).get_field('Ex')   # Saves x-direction E-field for 1st & 2nd modes
 
 See the Examples directory for full examples, as some details are missing here.
 
