@@ -277,10 +277,17 @@ class Waveguide(Node):
         return Mode(self, modeN,"app.subnodes[{"+str(self.parent.num)+"}].subnodes[{"+str(self.num)+"}].evlist.")
 
 
-    def calc(self):
-        '''Calculate/Solve for the modes of this Waveguide.  Build the node if needed.'''
+    def calc(self,polish=False):
+        '''Calculate/Solve for the modes of this Waveguide.  Build the node if needed.
+        
+        polish : polish modes if True, calculate modes as normal if False, optional
+        '''
         if not self.built: self.buildNode()
-        fimm.Exec("app.subnodes[{"+str(self.parent.num)+"}].subnodes[{"+str(self.num)+"}].evlist.update()")
+        if polish:
+            fimm.Exec("app.subnodes[{"+str(self.parent.num)+"}].subnodes[{"+str(self.num)+"}].evlist.polishevs")
+        else:
+            fimm.Exec("app.subnodes[{"+str(self.parent.num)+"}].subnodes[{"+str(self.num)+"}].evlist.update()")
+        
 
     def set_autorun(self):
         '''FimmProp Device will automatically calculate modes as needed.'''
@@ -421,25 +428,24 @@ class Waveguide(Node):
         nodestring="app.subnodes["+str(self.parent.num)+"]"
         
         if update_node:
-            overwrite=True
             node_num = self.num
         else:
+            self._checkNodeName(nodestring, overwrite=overwrite, warn=warn)     # will alter the node name if needed
             N_nodes = fimm.Exec(nodestring + ".numsubnodes()")
             node_num = int(N_nodes+1)
             wgString = self.parent.nodestring + ".addsubnode(rwguideNode,"+str(self.name)+")"+"\n"  # make RWG node
         
-        self._checkNodeName(nodestring, overwrite=overwrite, warn=warn)     # will alter the node name if needed
         self.num = node_num    
                 
         self.nodestring = self.parent.nodestring + ".subnodes["+str(self.num)+"]"
         
-        fimm.Exec(  wgString + self.get_buildNode_str(self.nodestring, warn=warn, update_node=update_node)  )
+        if update_node:
+            fimm.Exec(  self.get_buildNode_str(self.nodestring, warn=warn, update_node=update_node)  )
+        else:
+            fimm.Exec(  wgString + self.get_buildNode_str(self.nodestring, warn=warn, update_node=update_node)  )
         
         self.built=True
     #end buildNode()
-    
-    def polish(self):
-        fimm.Exec("app.subnodes[{"+str(self.parent.num)+"}].subnodes[{"+str(self.num)+"}].evlist.polishevs")
     
     def get_buildNode_str(self, nodestr, obj=None, target=None, warn=True, update_node=False):
         '''Return the node construction string for either a standalone waveguide or device.
@@ -494,11 +500,12 @@ class Waveguide(Node):
         for slc in obj.slices:
             if update_node:
                 wgString = nodestr + ".slices[{"+str(sliceN)+"}].width = "+str(slc.width)+"\n"
+                wgString += nodestr + ".slices[{"+str(sliceN)+"}].etch = "+str(slc.etch)+"\n"
             else:
                 wgString += nodestr + ".insertslice({"+str(sliceN)+"})"+"\n"
                 wgString += nodestr + ".slices[{"+str(sliceN)+"}].width = "+str(slc.width)+"\n"
-            wgString += nodestr + ".slices[{"+str(sliceN)+"}].etch = "+str(slc.etch)+"\n"
-            wgString += (len(slc.layers)-1)*(nodestr + ".slices[{"+str(sliceN)+"}].insertlayer(1)"+"\n")
+                wgString += nodestr + ".slices[{"+str(sliceN)+"}].etch = "+str(slc.etch)+"\n"
+                wgString += (len(slc.layers)-1)*(nodestr + ".slices[{"+str(sliceN)+"}].insertlayer(1)"+"\n")
             layerN = 1
             for lyr in slc.layers:
                 wgString += nodestr + ".slices[{"+str(sliceN)+"}].layers[{"+str(layerN)+"}].size = "+str(lyr.thickness)+"\n"
