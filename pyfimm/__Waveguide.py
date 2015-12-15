@@ -394,7 +394,7 @@ class Waveguide(Node):
     ####    Rectangular Waveguide Node Construction ####
     ####################################################
     
-    def buildNode(self, name=None, parent=None, overwrite=False, warn=True):
+    def buildNode(self, name=None, parent=None, overwrite=False, warn=True, update_node=False):
         '''Build the Fimmwave node of this Ridge/Rectangular (RWG) waveguide.
         
         Parameters
@@ -411,32 +411,37 @@ class Waveguide(Node):
         warn : {True | False}, optional
             Print notification if overwriting a node?  True by default.
         
+        update_node : {True | False}, optional
+            False will create a new node and True re-builds the same node
         '''
         if name: self.name = name
         if parent: self.parent = parent
         if DEBUG(): print "Waveguide.buildNode(): self.parent.num=", self.parent.num
         
         nodestring="app.subnodes["+str(self.parent.num)+"]"
+        
+        if update_node:
+            overwrite=True
+            node_num = self.num
+        else:
+            N_nodes = fimm.Exec(nodestring + ".numsubnodes()")
+            node_num = int(N_nodes+1)
+            wgString = self.parent.nodestring + ".addsubnode(rwguideNode,"+str(self.name)+")"+"\n"  # make RWG node
+        
         self._checkNodeName(nodestring, overwrite=overwrite, warn=warn)     # will alter the node name if needed
-        
-        N_nodes = fimm.Exec("app.subnodes["+str(self.parent.num)+"].numsubnodes()")
-        node_num = int(N_nodes+1)
         self.num = node_num    
-        
-        # make RWG node:
-        #wgString = "app.subnodes["+str(self.parent.num)+"].addsubnode(rwguideNode,"+str(self.name)+")"+"\n"
-        wgString = self.parent.nodestring + ".addsubnode(rwguideNode,"+str(self.name)+")"+"\n"
-        
+                
         self.nodestring = self.parent.nodestring + ".subnodes["+str(self.num)+"]"
         
-        fimm.Exec(  wgString + self.get_buildNode_str(self.nodestring, warn=warn)  ) 
-        #self.BuildRectNode()  
-          
+        fimm.Exec(  wgString + self.get_buildNode_str(self.nodestring, warn=warn, update_node=update_node)  )
+        
         self.built=True
     #end buildNode()
     
+    def polish(self):
+        fimm.Exec("app.subnodes[{"+str(self.parent.num)+"}].subnodes[{"+str(self.num)+"}].evlist.polishevs")
     
-    def get_buildNode_str(self, nodestr, obj=None, target=None, warn=True):
+    def get_buildNode_str(self, nodestr, obj=None, target=None, warn=True, update_node=False):
         '''Return the node construction string for either a standalone waveguide or device.
         This is for a Rectangular/Planar (RWG) waveguide.
         The new Waveguide subnode should be created BEFORE calling this function, so that you can pass the correct node string.
@@ -456,6 +461,9 @@ class Waveguide(Node):
         
         target : { 'wglens' | 'taper' }, optional
             Omits certain parameters from being set depending on target.  Used for building tapers.
+        
+        update_node : {True | False}, optional
+            False will create a new node and True re-builds the same node
         '''
         
         if not obj: obj=self
@@ -484,8 +492,11 @@ class Waveguide(Node):
         
         sliceN = 1
         for slc in obj.slices:
-            wgString += nodestr + ".insertslice({"+str(sliceN)+"})"+"\n"
-            wgString += nodestr + ".slices[{"+str(sliceN)+"}].width = "+str(slc.width)+"\n"
+            if update_node:
+                wgString = nodestr + ".slices[{"+str(sliceN)+"}].width = "+str(slc.width)+"\n"
+            else:
+                wgString += nodestr + ".insertslice({"+str(sliceN)+"})"+"\n"
+                wgString += nodestr + ".slices[{"+str(sliceN)+"}].width = "+str(slc.width)+"\n"
             wgString += nodestr + ".slices[{"+str(sliceN)+"}].etch = "+str(slc.etch)+"\n"
             wgString += (len(slc.layers)-1)*(nodestr + ".slices[{"+str(sliceN)+"}].insertlayer(1)"+"\n")
             layerN = 1

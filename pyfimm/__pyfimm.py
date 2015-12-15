@@ -76,6 +76,9 @@ def disconnect():
     global pd # use this module-level variable.  Dunno why the `global` declaration is only needed in THIS module function (not others!), in order to delete it...
     del pd    # pdPythonLib does some cleanup upon del()'ing
 
+def exitfimmwave():
+    '''Closes the Fimmwave app'''
+    fimm.Exec("app.exit")
 
 def Exec(string, vars=[]):
     '''Send a raw command to the fimmwave application.  
