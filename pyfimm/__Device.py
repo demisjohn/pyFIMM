@@ -357,7 +357,7 @@ class Device(Node):
             sidestr = 'rhs'
             self.input_field_right = amplitude_list
         else:
-            ErrStr = "Device ''.set_input_field(): "%self.name + "Unsupported side passed: `" + str(side) + "`.  \n\tPlease use 'Left' or 'Right', or see `help(pyfimm.Device.set_input_field)`."
+            ErrStr = "Device '%s'.set_input_field(): "%self.name + "Unsupported side passed: `" + str(side) + "`.  \n\tPlease use 'Left' or 'Right', or see `help(pyfimm.Device.set_input_field)`."
             if DEBUG(): print "side.lower() = ", side.lower()
             raise ValueError(ErrStr)
 
