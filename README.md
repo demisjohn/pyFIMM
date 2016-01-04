@@ -95,6 +95,8 @@ See the Examples directory for full examples, as some details are missing here.
 
 
 ## Installation
+pyFIMM currently only supports Python 2.7.
+
 To use pyFIMM, simply download one of the released versions (see the "releases" or "tags" section of this page), or the bleeding-edge code, and extract the archive into a directory.  Your Python script should reside in the same directory as the *pyfimm* folder, or else you should add the parent directory of the *pyfimm* folder to your Python path at the beginning of your script.    
 
 These pyfimm scripts can be run like any typical Python script (eg. on the command line via `python myScript.py` or `python -i myScript.py` to interact afterwards).  
