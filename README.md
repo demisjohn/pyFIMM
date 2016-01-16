@@ -129,3 +129,8 @@ Since FimmWave & FimmProp require Windows, you must run this on a Windows system
 * matplotlib
 (both of the above Python modules are included as part of scientific python environments [Python(x,y)](https://code.google.com/p/pythonxy/) and [Anaconda](http://continuum.io/downloads))
 
+###Contact
+
+Feel free to add issues/feature requests, or even better, Fork the `git` repository and submit your own updates (see this [how-to](http://kbroman.org/github_tutorial/pages/fork.html))!
+
+Jan. 2016, Demis D. John
