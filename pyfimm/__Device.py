@@ -308,13 +308,13 @@ class Device(Node):
         return self.__wavelength
     
     
-    def set_input(self,amplitude_list, side=None, normalize=False, warn=True):
+    def set_input(self,mode_vector, side=None, normalize=False, warn=True):
         '''Set input ("incident") field vector - takes a list with amplitude coefficients (complex) for each mode number, as entered into the "Vector" mode of the "View > Set Input" menu of a FimmWave Device.
         `set_inc_field()` is an alias to this function.
         
         Parameters
         ----------
-        amplitude_list : array-like or integer
+        mode_vector : array-like or integer
             To set the input as a vector (list of mode amplitudes), pass a List of complex amplitudes for each mode's excitation amplitude/phase.  Length of amplitude-list must equal the number of lateral modes, get_N() (ie. every mode of the waveguide should have a specified amplitude).
             To set the input as just a modenumber, pass an integer.
             To turn off an input, pass `None`.
@@ -352,10 +352,10 @@ class Device(Node):
         
         if (side == 'lhs') or (side == 'left') or (side == 'l'):
             sidestr = 'lhs'
-            self.input_field_left = amplitude_list
+            self.input_field_left = mode_vector
         elif (side == 'rhs') or (side == 'right') or (side == 'r'):
             sidestr = 'rhs'
-            self.input_field_right = amplitude_list
+            self.input_field_right = mode_vector
         else:
             ErrStr = "Device '%s'.set_input_field(): "%self.name + "Unsupported side passed: `" + str(side) + "`.  \n\tPlease use 'Left' or 'Right', or see `help(pyfimm.Device.set_input_field)`."
             if DEBUG(): print "side.lower() = ", side.lower()
@@ -368,28 +368,28 @@ class Device(Node):
         
         fpString = ''
         
-        if amplitude_list == None:
+        if mode_vector == None:
             # if `None` was passed, Turn off input on this side by setting input = Mode 0
-            amplitude_list = int(0)
+            mode_vector = int(0)
         
-        if isinstance(amplitude_list, int):
+        if isinstance(mode_vector, int):
             # an integer was passed, so set to mode component
             fpString += self.nodestring + "." + sidestr + "input.inputtype=1" + "\n"    # mode number input
-            fpString += self.nodestring + "." + sidestr + "input.cpt=" + str(amplitude_list - 1) + "\n"
+            fpString += self.nodestring + "." + sidestr + "input.cpt=" + str(mode_vector - 1) + "\n"
             if sidestr == 'lhs': 
-                self.input_field_left = amplitude_list - 1
+                self.input_field_left = mode_vector - 1
             elif sidestr == 'rhs':
-                self.input_field_right = amplitude_list - 1
+                self.input_field_right = mode_vector - 1
         else:
             # assume an array-like was passed, so set the input as a vector
 
-            ampString = str(amplitude_list[0].real)+","+str(amplitude_list[0].imag)
+            ampString = str(mode_vector[0].real)+","+str(mode_vector[0].imag)
             for ii in range( 1, get_N() ):
-                ampString += ","+str(amplitude_list[ii].real)+","+str(amplitude_list[ii].imag)
+                ampString += ","+str(mode_vector[ii].real)+","+str(mode_vector[ii].imag)
             
             fpString = self.nodestring + "." + sidestr + "input.inputtype=2" + "\n"     # vector input
             fpString += self.nodestring + "." + sidestr + "input.setvec(" + ampString + ")   \n"
-        #end isinstance(amplitude_list)
+        #end isinstance(mode_vector)
         
         if normalize:
             fpString += self.nodestring + "." + sidestr + "input.normalise=1  \n"
@@ -530,7 +530,7 @@ class Device(Node):
     #end get_output_vector()
     
     
-    def get_input_field(self, component='I', amplitude_list=None, side='left', include_pml=True):
+    def get_input_field(self, component='I', mode_vector=None, side='left', include_pml=True):
         '''Return the input field.  Useful for viewing what a superposition of the various basis modes would look like.
         
         Parameters
@@ -540,7 +540,7 @@ class Device(Node):
             'E' is electric field, 'H' is magnetic field, 'P' is the Poynting vector, 'I' is Intensity, and 'x/y/z' chooses the component of each vector to return.
             Defaults to "I".
         
-        amplitude_list : array-like, optional
+        mode_vector : array-like, optional
             The mode-vector to plot.  The mode-vector is a list with `get_N()` elements (as used in `Device.set_input()`), where each element is the amplitude & phase coefficient of each waveguide mode.  Using the modes as a basis-set, you can construct any mode profile, as mode modes are included in the calculation.
             If not specified, will use the currently-set input field, (Dev.input_field_left/right) corresponding to the chosen `side`.
         
@@ -569,16 +569,16 @@ class Device(Node):
         side = side.lower().strip()
         
         if side == 'left' or side == 'l' or side == 'lhs':
-            if amplitude_list is None:  amplitude_list = self.input_field_left
+            if mode_vector is None:  mode_vector = self.input_field_left
             n = self.elementpos[0]     # 1st element
         elif side == 'right' or side == 'r' or side == 'rhs':
-            if amplitude_list is None:  amplitude_list = self.input_field_right
+            if mode_vector is None:  mode_vector = self.input_field_right
             n = self.elementpos[-1]     # last element
         
         '''
-        # normalize amplitude_list
-        mag = np.sum(  [np.abs(x) for x in amplitude_list]  )
-        amplitude_list = np.array(amplitude_list)/float(mag)
+        # normalize mode_vector
+        mag = np.sum(  [np.abs(x) for x in mode_vector]  )
+        mode_vector = np.array(mode_vector)/float(mag)
         '''
         
         # calculate modes of the element:
@@ -592,9 +592,9 @@ class Device(Node):
         
         superfield = np.zeros_like( fields[0] )     # zeros with same dims as returned field
         for i, field   in   enumerate(fields):
-            if DEBUG(): print "i=",i, "\n","amplitude_list[i]=", amplitude_list[i], "\n", "np.shape(field)=", np.shape(field)
+            if DEBUG(): print "i=",i, "\n","mode_vector[i]=", mode_vector[i], "\n", "np.shape(field)=", np.shape(field)
             if DEBUG(): print "get_input_field(): min/max(field) = %f/%f" % (np.min(np.array(field).real), np.max(np.array(field).real))
-            superfield = superfield + np.array(field) * amplitude_list[i]
+            superfield = superfield + np.array(field) * mode_vector[i]
 
         return superfield.transpose()
         '''
@@ -609,7 +609,7 @@ class Device(Node):
     get_inc_field = get_input_field
     
     
-    def plot_input_field(self, component='I', amplitude_list=None, side='left', include_pml=True, title=None, annotations=False, return_handles=False, plot_type='pseudocolor'):
+    def plot_input_field(self, component='I', mode_vector=None, side='left', include_pml=True, title=None, annotations=False, return_handles=False, plot_type='pseudocolor'):
         '''Plot the input field.  Useful for viewing what a superposition of the various basis modes would look like.
         
         Parameters
@@ -619,7 +619,7 @@ class Device(Node):
             'E' is electric field, 'H' is magnetic field, 'P' is the Poynting vector, 'I' is Intensity, and 'x/y/z' chooses the component of each vector to return.
             Defaults to "I".
         
-        amplitude_list : array-like, optional
+        mode_vector : array-like, optional
             The mode-vector to plot.  The mode-vector is a list with `get_N()` elements (as used in `Device.set_input()`), where each element is the amplitude & phase coefficient of each waveguide mode.  Using the modes as a basis-set, you can construct any mode profile, as mode modes are included in the calculation.
             If not specified, will use the currently-set input field, (Dev.input_field_left/right) corresponding to the chosen `side`.
         
@@ -657,19 +657,19 @@ class Device(Node):
         if side == 'left' or side == 'l' or side == 'lhs':
             sidestr = 'lhs'
             n=1     # 1st element
-            if amplitude_list is None:  amplitude_list = self.input_field_left
+            if mode_vector is None:  mode_vector = self.input_field_left
         elif side == 'right' or side == 'r' or side == 'rhs':
             sidestr = 'rhs'
             n = self.elementpos[-1]     # last element
-            if amplitude_list is None:  amplitude_list = self.input_field_right
+            if mode_vector is None:  mode_vector = self.input_field_right
             
             
-        field = self.get_input_field(component=component, amplitude_list=amplitude_list, side=side, include_pml=include_pml)
+        field = self.get_input_field(component=component, mode_vector=mode_vector, side=side, include_pml=include_pml)
         
         if title:
-            plot_title = title + " - %s=%s" %(side, amplitude_list)
+            plot_title = title + " - %s=%s" %(side, mode_vector)
         else:
-            plot_title = '"%s": ' % self.name  +  "%s=%s" %(side, amplitude_list)
+            plot_title = '"%s": ' % self.name  +  "%s=%s" %(side, mode_vector)
         
         
         # Options for the subplots:
