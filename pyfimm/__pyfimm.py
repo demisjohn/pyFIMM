@@ -82,17 +82,21 @@ def exitfimmwave():
 
 def Exec(string, vars=[]):
     '''Send a raw command to the fimmwave application.  
+    `vars` is an optional list of arguments for the command.
     See `help(<pyfimm>.PhotonDesignLib.pdPythonLib.Exec)` for more info.'''
     out = fimm.Exec(string, vars)
     if isinstance(out, str):
         '''if fimm.Exec returned a string, FimmWave usually appends `\n\x00' to the end'''
-        if out[-2:] == '\n\x00': out = out[:-2]     # strip off FimmWave EOL/EOF chars.
+        ## TO DO: should use strip_txt()/strip_array()
+        #if out[-2:] == '\n\x00': out = out[:-2]     # strip off FimmWave EOL/EOF chars.
+        out = strip_txt(  strip_array(out)  )
     return out
 
 def strip_txt(FimmString):
     '''Remove the EOL characters from FimmWave output strings.'''
     junkchars = '\n\x00'    # characters to remove
-    if FimmString.endswith(junkchars): out = FimmString.strip( junkchars )     # strip off FimmWave EOL/EOF chars.
+    if isinstance(out, str):
+        if FimmString.endswith(junkchars): out = FimmString.strip( junkchars )     # strip off FimmWave EOL/EOF chars.
     return out
 
 # Alias for the same function:
@@ -444,7 +448,7 @@ class Node(object):
         
         
     
-    def set_parent(self,parent_node):
+    def set_parent(self, parent_node):
         self.parent = parent_node
         parent_node.children.append(self)
         
@@ -456,6 +460,19 @@ class Node(object):
         else:
             fimm.Exec("app.subnodes[{"+str(self.parent.num)+"}].subnodes[{"+str(self.num)+"}].delete()")
         '''
+    
+    def Exec(self, string, vars=[]):
+        '''Send raw command referencing this Node.
+        For example:
+            MyWaveGuide.Exec( "findorcreateview()" )   # to make FimmWave show the Waveguide window
+        Note the initial period `.` is not needed.
+        See `help(pyfimm.Exec)` for additional info.
+        '''
+        if self.built:
+            Exec( self.nodestring + "." + string,   vars)
+        else:
+            raise UserWarning(  "Node is not built yet, can't reference this Node yet!  Please run `MyNode.Build()` first."  ) 
+        if isinstance(out, str)
             
 #end class Node
 
