@@ -1826,7 +1826,7 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
     
     if DEBUG(): print "import_device( project.name='%s', fimmpath='%s' )"%(project.name, fimmpath)
     
-    dev = Device()      # new pyFIMM Device object
+    dev = Device()      # new, empty, pyFIMM Device object
     dev.elements = None
     dev.num = None
     dev.set_parent( project )
@@ -1835,8 +1835,9 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
 
     devname = "Device_%i" %(  get_next_refnum()  )  # generate dev reference name
     # create fimmwave reference to the Device:
-    if DEBUG(): print "Ref& %s = "%(devname) + project.nodestring + ".findnode(%s)"%(fimmpath)
-    ret = fimm.Exec( "Ref& %s = "%(devname) + project.nodestring + ".findnode(%s)"%(fimmpath)   )
+    fpStr = "Ref& %s = "%(devname) + project.nodestring + '.findnode("%s")'%(fimmpath)
+    if DEBUG(): print fpStr
+    ret = fimm.Exec( fpStr )
     ret = strip_txt( ret )
     if DEBUG(): print "\tReturned:\n%s"%(ret)
     dev.nodestring = devname    # use this to reference the device in Fimmwave
@@ -1952,7 +1953,7 @@ app.subnodes[1].subnodes[3].cdev.eltlist[2].objtype
 'FPsimpleJoint'
 
 
-### FOr referenced section:
+### For referenced section:
 Device_187734.cdev.eltlist[3].objtype
     FPRefSection
 
@@ -1995,6 +1996,9 @@ def import_device(project, fimmpath, name=None, overwrite=False, warn=True ):
     
     name : string, optional
     Optionally provide a name for the new Device node in Fimmwave.  If omitted, the name found in the Project will be used.
-
+    
+    Returns
+    -------
+    pyFIMM Device object, referencing the fpDevice.
     '''
-    return _import_device('device', project, fimmpath, name=None, overwrite=False, warn=warn )
+    return _import_device('device', project, fimmpath, name=name, overwrite=overwrite, warn=warn )

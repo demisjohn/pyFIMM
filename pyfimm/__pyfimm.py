@@ -37,10 +37,9 @@ Also in this file are the pyFIMM global parameters - set_wavelength, set_N etc.
 from __globals import *         # import global vars & FimmWave connection object `fimm`
 from __Classes import *         # import higher-level classes
 
-import numpy as np
-import datetime as dt   # for date/time strings
+#import numpy as np
+#import datetime as dt   # for date/time strings
 import os.path      # for path manipulation
-import random       # random number generators
 
 
 

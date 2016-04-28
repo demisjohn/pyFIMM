@@ -4,11 +4,13 @@ This module is imported by pyfimm.py
 
 Included here are the following classes:
 Node    (Inherited by all objects that are actual fwNodes)
-Project
+Project & import_project()
 Material
 Layer   (Waveguide/Circ)
 Slice   (Waveguide)
 Section (Device)
+
+Also some Node-specific functions such as strip_txt(), check_node_name() etc.
 
 '''
 
@@ -18,12 +20,13 @@ from __globals import *         # import global vars & FimmWave connection objec
 #from __pyfimm import *      # import the main module (should already be imported)
 #  NOTE: shouldn't have to duplicate the entire pyfimm file here!  Should just import the funcs we need...
 
+import os.path      # for path manipulation
 import datetime as dt   # for date/time strings
 import random       # random number generators
 
 
 ####################################################
-# Node Functions
+# Node-Specific Functions
 ####################################################
 
 def strip_txt(FimmString):
@@ -31,7 +34,7 @@ def strip_txt(FimmString):
     junkchars = '\n\x00'    # characters to remove
     if isinstance(FimmString, str):
         if FimmString.endswith(junkchars): FimmString = FimmString.strip( junkchars )     # strip off FimmWave EOL/EOF chars.
-    return FimmString
+    return FimmString.strip()   # strip whitespace on ends
 
 # Alias for the same function:
 strip_text = striptxt = strip_txt
@@ -42,7 +45,16 @@ def strip_array(FimmArray):
     if  isinstance( FimmArray,  list ):
         if  FimmArray[0]  is None:  FimmArray = FimmArray[1:]     # omit 1st 'None' element
     return FimmArray
-    
+
+def eval_string(fpStr):
+    '''Check if a string is numeric, and if so, return the numeric value (as int, float etc.).  If the string is not numeric, the original string is returned.'''
+    # convert numbers:
+    # only unicode str's have the .isnumeric() method
+    if unicode(fpStr).isnumeric(): 
+        return eval(fpStr)
+    else:
+        return fpStr
+#end eval_string()
 
 def check_node_name( name, nodestring="app", overwrite=False, warn=True ):
     ''' See if the node name already exists in FimmWave, and return a modified project name (with random numbers appended) if it exists.
@@ -153,17 +165,16 @@ def get_next_refnum():
 # Classes
 ####################################################
 class Node(object):
-    """class Node: creates a Fimmwave node
+    """class Node: creates an internal representaiton of a Fimmwave node
         Node() - Creates TimeStamped Node Name, Number 0, No Parent or Children
         Node('NameOfNode')
         Node('NameOfNode', NodeNumber)
         Node('NameOfNode', NodeNumber, ParentNodeObject)
         Node('NameOfNode', NodeNumber, ParentNodeObject, Children)
-    """
-    """
+    
         If 'NameOfNode' already exists, the name will be modified by adding a random number to the end as ".123456".
         The modified name can be found in the variable: `Node.name`
-        if the keyword argument `overwrite=True` is provided, then an existing Node with the same name will be deleted upon building."""
+        if the keyword argument `overwrite=True` is provided, then an existing Node with the same name would be deleted upon building."""
     def __init__(self,*args, **kwargs):
         if len(args) >= 0:
             self.name = 'Fimmwave Node ' + dt.datetime.now().strftime("%Y-%m-%d %H.%M.%S")
@@ -242,7 +253,7 @@ class Node(object):
         
         nodestring : string
             string to reference the FimmWave node, omitting trailing period.  eg. 
-                app.subnodes[1].subnoes[3]
+                app.subnodes[1].subnodes[3]
         
         overwrite : { True | False }, optional
         warn : { True | False }, optional
@@ -275,7 +286,6 @@ class Node(object):
             pass
         #end if(self.name already exists aka. len(sameprojname) )
         
-        
     
     def set_parent(self, parent_node):
         self.parent = parent_node
@@ -298,7 +308,7 @@ class Node(object):
         See `help(pyfimm.Exec)` for additional info.
         '''
         if self.built:
-            out = Exec( self.nodestring + "." + string,   vars)
+            out = fimm.Exec( self.nodestring + "." + string,   vars)
         else:
             raise UserWarning(  "Node is not built yet, can't reference this Node yet!  Please run `MyNode.Build()` first."  ) 
         if isinstance(out, list): out = strip_array(out)
@@ -372,7 +382,7 @@ class Project(Node):
                 ErrStr += "'" + k + "', "
             ErrStr += "}.    Continuing..."
             print ErrStr
-        
+    
     def buildNode(self, name=None, overwrite=False, warn=True):
         '''Build the Fimmwave node of this Project.
         
@@ -380,6 +390,7 @@ class Project(Node):
         ----------
         name : string, optional
             Provide a name for this waveguide node.
+            If `name` is not provided as an argument here, it should be pset via `MyProj.name = "NewName"` before calling `buildNode()`.
         
         overwrite : { True | False }, optional
             If True, will delete a project already open in FimmWave with the same name if it's the last project in the FimmWave list, otherwise will rename the offending Project (retaining desired name of this new Project).  If False, and a similarly-named Project exists in FimmWave, will modify the supplied project name. 
@@ -475,12 +486,155 @@ class Project(Node):
         #end if(file exists/overwrite)
     #end savetofile()
     
+    def set_variables_node(self, fimmpath):
+        '''Set the Variables Node to use for all nodes in this Project.  pyFIMM only supports the use of a single Variables node, even though FimmWave allows you to have numerous variables.  Local variables (within a Waveguide or Device node) are not supported.
+        
+        Use MyProj.set_variable() / get_variable() to set/get variable values.
+        
+        Parameters
+        ----------
+        fimmpath : string, required
+        The FimmProp path to the Variable node, within this project.  This takes the form of something like "My Variables" if the Variables node named "My Variables" is at the top-level of the FimmProp Project, or "NodeName/My Variables" is the Variables node is under another Node.
+        '''
+        self.variablesnode = Variables( self, fimmpath )
     
 #end class(Project)
 
-# Note!  Project.import_device() is added in the file __Device.py, for cyclic import reasons!
 
-# Note!  Project.import_device() is added in the file __Device.py, for cyclic import reasons!
+# Note!  Project.import_device() is added in the file __Device.py, to avoid cyclic imports!
+
+
+class Variables(Node):
+    '''Variables( project, fimmpath )
+    A class to reference a FimmProp Variables node.
+    Used as a child to a Project object.
+    
+    The Variable's parent Project should have been created in pyFIMM beforehand.  To grab a Variable node from a file, use `newprj = pyFIMM.import_project()` to generate the Project from a file, and then call `newprj.set_variables_node()`.
+    
+    Parameters
+    ----------
+    project : pyFIMM Project object, required
+        Specify the pyFIMM Project from which to acquire the Device.
+
+    fimmpath : string, required
+        The FimmProp path to the Variable node, within this project.  This takes the form of something like "My Variables" if the Variables node named "My Variables" is at the top-level of the FimmProp Project, or "NodeName/My Variables" is the Variables node is under another Node.
+    
+    Please use `dir(VarObj)` or `help(VarObj)` to see all the attributes and methods available.  A partial list is shown here:
+    
+    Attributes
+    ----------
+    VarObj.origin : { 'fimmwave' }
+        This indicates that this Node was Not constructed by pyFIMM, and so has a slightly lacking set of attributes (detailed further in this section).  A python-constructed pyFIMM object has the value 'pyfimm'.
+        
+    Methods
+    -------
+    VarObj.get_all():  Return all available variables.  This will interrogate FimmWave to get all currently defined variables in the node.  
+    A dictionary will be returned, with all variables being represented as strings - number will Not be converted into numeric types.
+    
+    VarObj.get_var( 'VarName' ): Return the value of a single variable.  If the variable references another variable, the result will be a string.  Otherwise, the result will be converted to a numeric type.
+    
+    VarObj.set_var( 'VarName', Value ):  Set the value of a variable in the FimmWave node.
+    
+    '''
+    def __init__(self, *args):
+        '''If no args, return empty object
+        if two args, assuem they are (projectobj, fimmpath)'''
+        if len(args) == 0:
+            '''no args provided'''
+            self.parent=None
+            self.origin=None
+            self.name=None
+            self.num=None
+            self.nodestring=None
+            self.built=None
+            
+        elif len(args) == 2:
+            '''2 args: ProjectObj, fimmpath
+            This is the standard usage'''
+            project = args[0]
+            if not isinstance(project, Project): raise ValueError("1st argument should be a pyFIMM Project object!")
+            fimmpath = str(  args[1]  )
+            self.parent=project
+            self.origin = 'fimmwave'
+            self.name = fimmpath.split('/')[-1]      # get the last part of the path
+            self.num = None
+        
+            varname = "Vars_%i" %(  get_next_refnum()  )  # generate dev reference name
+            # create fimmwave reference to the Device:
+            fpStr = "Ref& %s = "%(varname) + project.nodestring + '.findnode("%s")'%(fimmpath)
+            if DEBUG(): print fpStr
+            ret = fimm.Exec( fpStr )
+            ret = strip_txt( ret )
+            if DEBUG(): print "\tReturned:\n%s"%(ret)
+            self.nodestring = varname    # use this to reference the node in Fimmwave
+
+            ret = strip_txt(  fimm.Exec( '%s.objtype'%(self.nodestring) )  )
+            if ret != 'pdVariablesNode':
+                ErrStr = "The referenced node `%s` is not a FimmProp Variables node or couldn't be found!\n\t"%(fimmpath) + "FimmWave returned object type of:\n\t`%s`."%(ret)
+                raise ValueError(ErrStr)
+            
+            self.built=True
+        else:
+            ErrStr = "Invalid number of arguments to Variables.__init__().  Got:\n\t%s"%(args)
+            raise ValueError(  ErrStr  )
+        #end if( number of args )
+    #end Variables.init()
+    
+    def add_var(self, varname, value=None):
+        '''Add a variable to the Variables Node.
+        
+        varname : str, required
+            The name for this variable.
+        
+        value : str or numeric, optional
+            If provided, will subsequently set the variable value with `VarObj.set_var( )`.
+        '''
+        self.Exec( 'addvariable("%s")'%(varname)  )
+        self.set_var( varname, value )
+    
+    def set_var(self, varname, value):
+        '''Set the value of a fimmwave variable.
+         varname : str, required
+            The name for this variable.
+        
+        value : str or numeric, required
+            Set the variable value.
+            '''
+        self.Exec(  'setvariable("%s","%s")'%(varname, value)  )
+    
+    def get_var(self, varname):
+        '''Return the value of the specific variable, `varname`.'''
+        fpStr = self.Exec(  'getvariable("%s")'%(varname)  )   
+        return eval_string( fpStr )
+        
+    def get_all(self):
+        '''Return a Dictionary of all variables in the node.'''
+        fpStr = self.Exec( 'writeblock()' )
+        fpStr = [  x.strip() for x in   fpStr.splitlines()[1:-1]  ]
+        if DEBUG(): print "Variables in '%s':\n\t%s"%(self.name, fpStr )
+        
+        out={}  # dictionary to output
+        for line in fpStr:
+            key = line.split(' = ')[0]
+            val = line.split(' = ')[-1]
+            out[key] = eval_string( val )
+        
+        return out
+        
+"""
+## FimmWave code for Variables Nodes:
+app.subnodes[4].addsubnode(pdVariablesNode,"Variables 1")
+app.subnodes[4].subnodes[2].findorcreateview()
+app.subnodes[4].subnodes[2].addvariable(a)
+app.subnodes[4].subnodes[2].setvariable(a,"999")
+app.subnodes[4].subnodes[2].getvariable("a")
+    999
+"""
+
+    
+#end class(Variables)
+
+
 
 def import_project(filepath, name=None, overwrite=False, warn=True):
     '''Import a Project from a file.  
@@ -576,6 +730,7 @@ def import_project(filepath, name=None, overwrite=False, warn=True):
 import_Project = import_project
 
 '''
+## FimmWave commands for opening a project file:
 app.openproject(T:\MZI Encoder\MZI Encoder v8.prj,"")  <-- see if 2nd arg is NodeName, if so, could obviate issue with re-opening a project (name already exists)
 app.subnodes[1].nodename
     MZI Encoder
