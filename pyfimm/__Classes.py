@@ -615,7 +615,7 @@ class Variables(Node):
         
     def get_all(self):
         '''Return all available variables as a dictionary.  This will interrogate FimmWave to get all currently defined variables in the node.  
-    A dictionary will be returned, with all numeric variables being converted to numbers, while references/formulae will be returned as strings.'''
+    A dictionary will be returned, with all numeric variables being converted to numbers, while references/formulae will be returned as strings (unevaluated by FimmWave - use `get_var()` to have FimmWave calculate the values).'''
         fpStr = self.Exec( 'writeblock()' )
         fpStr = [  x.strip() for x in   fpStr.splitlines()[1:-1]  ]
         if DEBUG(): print "Variables in '%s':\n\t%s"%(self.name, fpStr )
