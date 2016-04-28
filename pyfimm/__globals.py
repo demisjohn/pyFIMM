@@ -1,13 +1,15 @@
 '''pyFIMM's Global Variables
 Contains/defines global variables - most importantly the fimmwave connection object `fimm`.
 
-This separate file is required to prevent circular module imports, and enable nested-modules to use the FimmWave connection.
+This separate file is required to prevent circular module imports, and enable nested-modules (eg. in /proprietary/) to use the FimmWave connection.
 '''
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 '''
+## The following were various tests for resolving cyclic imports - can probably be deleted
+
 # import some pyFIMM objects/functions for global access from within the module:
 ## for Mode.py:
 import pylab as pl
@@ -53,6 +55,9 @@ global pf_DEBUG
 pf_DEBUG = False   # set to true for verbose outputs onto Python console - applies to all submodules/files
 # can be changed at run-time via `set/unset_DEBUG()`
 
+global pf_WARN
+pf_WARN = True      # globally set warning mode
+
 # custom colormaps:
 from colormap_HotCold import cm_hotcold
 
@@ -80,6 +85,21 @@ def unset_DEBUG():
 def DEBUG():
     '''Returns whether DEBUG is true or false'''
     return pf_DEBUG
+
+# the global WARN is not currently implemented in the main functions yet.
+def set_WARN():
+    '''Enable verbose output for debugging.'''
+    global pf_WARN
+    pf_WARN = True
+
+def unset_WARN():
+    '''Disable verbose debugging output.'''
+    global pf_WARN
+    pf_WARN = False
+
+def WARN():
+    '''Returns whether WARN is true or false'''
+    return pf_WARN
 
 def AMF_FolderStr():
     '''Folder name to store temporary files in.'''

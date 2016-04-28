@@ -1857,7 +1857,7 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
         dev.num = int(N_nodes)+1
         dev.nodestring = obj.nodestring + ".subnodes[%i]"%(dev.num)
         
-        #   check node name, overwrite existing/modify dev's name Dev if needed:
+        #   check node name, overwrite existing/modify dev's name if needed:
         dev.name, samenodenum = check_node_name( dev.name, nodestring=obj.nodestring, overwrite=overwrite, warn=warn )    
         fimm.Exec( obj.nodestring + '.paste( "%s" )'%(dev.name)  ) # paste into this project
     
@@ -1875,6 +1875,8 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
     for   i, el    in enumerate(els):
         elnum=i+1
         objtype = strip_text(    fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].objtype"%(elnum)  )    )
+        self.elements.append(objtype.strip())
+        
         if objtype.strip()=='FPsimpleJoint' or objtype == 'FPioSection':
             '''SimpleJoints,IOports have no length'''
             if DEBUG(): print "Element %i is Joint: %s"%(elnum, objtype)
@@ -1884,13 +1886,13 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
             refpos = int( fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].getrefid()"%(elnum)  )  )
             if DEBUG(): print "Element %i is reference --> Element %i."%(elnum, refpos)
             dev.elementpos.append( refpos )     # Append the position of the Original!
-            dev.lengths.append(  fimm.Exec( dev.nodestring + ".cdev.eltlist[%i].length"%(refpos)  )    )
+            dev.lengths.append(    strip_text(  fimm.Exec( dev.nodestring + ".cdev.eltlist[%i].length"%(refpos)  )  )    )
             if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
         elif objtype.lower().endswith('section') or objtype.strip() == 'FPtaper' or objtype.strip() == 'FPfspaceJoint' or objtype.strip() == 'FPbend':
             ''' Regular Section with a `*.length` attribute, including regular WG/Planar Sections'''
             if DEBUG(): print "Element %i is Section of type: %s"%(elnum, objtype)
             dev.elementpos.append(elnum)
-            dev.lengths.append(  fimm.Exec( dev.nodestring + ".cdev.eltlist[%i].length"%(elnum)  )    )
+            dev.lengths.append(     strip_text(  fimm.Exec( dev.nodestring + ".cdev.eltlist[%i].length"%(elnum) )  )    )
             if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
         else:
             '''Eg. Lens =  FPWGLens; can't get the length simply'''
