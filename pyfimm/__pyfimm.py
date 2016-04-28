@@ -472,7 +472,7 @@ class Node(object):
         else:
             raise UserWarning(  "Node is not built yet, can't reference this Node yet!  Please run `MyNode.Build()` first."  ) 
         if isinstance(out, list): out = strip_array(out)
-        if isinstance(out, str):    out = strip_text(out)
+        if isinstance(out, str):  out = strip_text(out)
         return out
 #end class Node
 
