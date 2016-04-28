@@ -459,7 +459,7 @@ class Waveguide(Node):
                 >>> nodestr = "app.subnodes[1].subnodes[2]"
             the subnode referenced should be the NEW subnode to be created (ie. one higher than previously in existence).  In normal operation, the new subnode has already been created by WG.buildnode().
         
-        warn : bool
+        warn : { True | False }, optional
             Print warnings about default values etc.?
         
         obj : Circ object, optional
@@ -549,6 +549,7 @@ class Waveguide(Node):
                 
         if get_right_boundary() is None:
             '''Default to Electric Wall/metal'''
+            if warn: print self.name + ".buildNode(): Right_Boundary: Using electric wall boundary."
             wgString += nodestr + ".rhsbc.type = 1"+"\n"
         else:
             if get_right_boundary().lower() == 'metal' or get_right_boundary().lower() == 'electric wall':
@@ -566,6 +567,7 @@ class Waveguide(Node):
 
         if get_bottom_boundary() is None:
             '''Default to Electric Wall/metal'''
+            if warn: print self.name + ".buildNode(): Bottom_Boundary: Using electric wall boundary."
             wgString += nodestr + ".botbc.type = 1"+"\n"
         else:
             if get_bottom_boundary().lower() == 'metal' or get_bottom_boundary().lower() == 'electric wall':
@@ -583,6 +585,7 @@ class Waveguide(Node):
 
         if get_top_boundary() is None:
             '''Default to Electric Wall/metal'''
+            if warn: print self.name + ".buildNode(): Top_Boundary: Using electric wall boundary."
             wgString += nodestr + ".topbc.type = 1"+"\n"
         else:
             if get_top_boundary().lower() == 'metal' or get_top_boundary().lower() == 'electric wall':
