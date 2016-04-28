@@ -47,7 +47,8 @@ def strip_array(FimmArray):
     return FimmArray
 
 def eval_string(fpStr):
-    '''Check if a string is numeric, and if so, return the numeric value (as int, float etc.).  If the string is not numeric, the original string is returned.'''
+    '''Check if a string is numeric, and if so, return the numeric value (as int, float etc.).  If the string is not numeric, the original string is returned.
+    This mainly handles the security issues of running `eval()` on random strings returned by Fimmprop.'''
     # convert numbers:
     # only unicode str's have the .isnumeric() method
     if unicode(fpStr).isnumeric(): 
@@ -528,10 +529,11 @@ class Variables(Node):
         
     Methods
     -------
-    VarObj.get_all():  Return all available variables.  This will interrogate FimmWave to get all currently defined variables in the node.  
-    A dictionary will be returned, with all variables being represented as strings - number will Not be converted into numeric types.
+    VarObj.get_all():  Return a Dictionary of all variables in the node.
     
-    VarObj.get_var( 'VarName' ): Return the value of a single variable.  If the variable references another variable, the result will be a string.  Otherwise, the result will be converted to a numeric type.
+    VarObj.add_var( 'VarName', value=VarValue ): Add a new variable and optionally set it's value.
+    
+    VarObj.get_var( 'VarName' ): Return the value of a specific variable.
     
     VarObj.set_var( 'VarName', Value ):  Set the value of a variable in the FimmWave node.
     
@@ -586,7 +588,7 @@ class Variables(Node):
         varname : str, required
             The name for this variable.
         
-        value : str or numeric, optional
+        value : will be converted to string, optional
             If provided, will subsequently set the variable value with `VarObj.set_var( )`.
         '''
         self.Exec( 'addvariable("%s")'%(varname)  )
@@ -603,12 +605,13 @@ class Variables(Node):
         self.Exec(  'setvariable("%s","%s")'%(varname, value)  )
     
     def get_var(self, varname):
-        '''Return the value of the specific variable, `varname`.'''
+        '''Return the value of a single variable.  If the variable is a formula or references another variable, the result will be a string.  Otherwise, the result will be converted to a numeric type.'''
         fpStr = self.Exec(  'getvariable("%s")'%(varname)  )   
         return eval_string( fpStr )
         
     def get_all(self):
-        '''Return a Dictionary of all variables in the node.'''
+        '''Return all available variables as a dictionary.  This will interrogate FimmWave to get all currently defined variables in the node.  
+    A dictionary will be returned, with all numeric variables being converted to numbers, while references/formulae will be returned as strings.'''
         fpStr = self.Exec( 'writeblock()' )
         fpStr = [  x.strip() for x in   fpStr.splitlines()[1:-1]  ]
         if DEBUG(): print "Variables in '%s':\n\t%s"%(self.name, fpStr )
