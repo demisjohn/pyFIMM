@@ -372,6 +372,7 @@ class Project(Node):
         
         self.built = False
         self.num = self.nodestring = self.savepath = None
+        self.variablesnode = None
         if name: self.name = name
         
         #kwargs.pop('overwrite', False)  # remove kwarg's which were popped by Node()
@@ -502,6 +503,27 @@ class Project(Node):
         '''
         self.variablesnode = Variables( self, fimmpath )
     
+    def checkvar(self, var):
+        '''If `var` is a string, check if it can be evaluated using the Project's variables node.  If `var` is numeric, it is returned as-is.'''
+        if isinstance(var, str):
+            if self.variablesnode == None:
+                WarnStr = "Project(%s).checkvar: "%(self.name) + "String `%s` unable to be evaluated - no variables node found in the project.  "%(var) +  "(Use `MyProj.set_variables_node()` to identify the variables node.)"
+                if WARN(): print WarnStr
+                out = var      # return unchanged
+            else:
+                try:
+                    out = self.variablesnode.get_var( var )
+                except ValueError:
+                    '''Variable wasn't found in FW'''
+                    out = var
+                #end try
+            #end if(variablesnode)
+        else:
+            out=var
+        #end if(str)
+        return out
+    #end checkvar
+            
 #end class(Project)
 
 
@@ -559,9 +581,9 @@ class Variables(Node):
             project = args[0]
             if not isinstance(project, Project): raise ValueError("1st argument should be a pyFIMM Project object!")
             fimmpath = str(  args[1]  )
-            self.parent=project
+            self.parent = project
             self.origin = 'fimmwave'
-            self.name = fimmpath.split('/')[-1]      # get the last part of the path
+            self.name = fimmpath.split('/')[-1]  # get the last part of the path
             self.num = None
         
             varname = "Vars_%i" %(  get_next_refnum()  )  # generate dev reference name
@@ -611,7 +633,11 @@ class Variables(Node):
         '''Return the value of a single variable as evaluated by FimmWave.  
         If the variable is a formula, fimmwave will return the final value resulting from evaluating the formula. All results are converted to a numeric type, unless the variable contains a statement that FimmWave is unable to evaluate, in which case the statement is returned as a string.'''
         fpStr = self.Exec(  'getvariable("%s")'%(varname)  )   
-        return eval_string( fpStr )
+        fpStr = eval_string( fpStr )
+        if fpStr == '': 
+            ErrStr = "Variable `%s` not found in Project('%s').VariablesNode('%s')."%(varname, self.parent.name, self.name)
+            raise ValueError(  ErrStr  )
+        return fpStr
         
     def get_all(self):
         '''Return all available variables as a dictionary.  This will interrogate FimmWave to get all currently defined variables in the node.  

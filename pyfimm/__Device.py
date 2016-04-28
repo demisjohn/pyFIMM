@@ -1887,7 +1887,8 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
             refpos = int( fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].getrefid()"%(elnum)  )  )
             if DEBUG(): print "Element %i is reference --> Element %i."%(elnum, refpos)
             dev.elementpos.append( refpos )     # Append the position of the Original!
-            dev.lengths.append(    strip_text(  fimm.Exec( dev.nodestring + ".cdev.eltlist[%i].length"%(refpos)  )  )    )
+            # dev.lengths.append(    dev.parent.checkvar(   dev.Exec( "cdev.eltlist[%i].length"%(refpos) )   )    )
+            dev.lengths.append(    dev.Exec( "cdev.eltlist[%i].length"%(refpos) )    )
             if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
         elif objtype.lower().endswith('section') or objtype.strip() == 'FPtaper' or objtype.strip() == 'FPfspaceJoint' or objtype.strip() == 'FPbend':
             ''' Regular Section with a `*.length` attribute, including regular WG/Planar Sections'''
