@@ -257,6 +257,7 @@ class Node(object):
                 app.subnodes[1].subnodes[3]
         
         overwrite : { True | False }, optional
+        
         warn : { True | False }, optional
             '''
         ## Check if top-level node name conflicts with one already in use:
@@ -279,7 +280,7 @@ class Node(object):
             else: 
                 '''change the name of this new node'''
                 if warn: print "WARNING: Node name `" + self.name + "` already exists;"
-                self.name += "." +str( get_next_refnum() )      #dt.datetime.now().strftime('.%f')   # add current microsecond to the name
+                self.name += "." +str( get_next_refnum() )  # add numbers to the name
                 print "\tNode name changed to: ", self.name
             #end if(overwrite)
         else:
@@ -294,18 +295,20 @@ class Node(object):
         
     def delete(self):
         fimm.Exec(  "%s.delete()"%(self.nodestring)  )
-        '''
-        if self.parent is None:
-            fimm.Exec("app.subnodes[{"+str(self.num)+"}].delete()")
-        else:
-            fimm.Exec("app.subnodes[{"+str(self.parent.num)+"}].subnodes[{"+str(self.num)+"}].delete()")
-        '''
+        
     
     def Exec(self, string, vars=[]):
         '''Send raw command referencing this Node.
         For example:
             MyWaveGuide.Exec( "findorcreateview()" )   # to make FimmWave show the Waveguide window
         Note the initial period `.` is not needed.
+        
+        Internally, this can replace the older syntax of 
+            fimm.Exec(  self.nodestring + '.findorcreateview()'  )
+            fimm.Exec(  '%s.findorcreateview()'%(self.nodestring)  )
+        with the simpler
+            self.Exec(  'findorcreateview()'  )
+        
         See `help(pyfimm.Exec)` for additional info.
         '''
         if self.built:
