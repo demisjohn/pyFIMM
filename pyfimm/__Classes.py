@@ -608,7 +608,8 @@ class Variables(Node):
         self.Exec(  'setvariable("%s","%s")'%(varname, value)  )
     
     def get_var(self, varname):
-        '''Return the value of a single variable.  If the variable is a formula or references another variable, the result will be a string.  Otherwise, the result will be converted to a numeric type.'''
+        '''Return the value of a single variable as evaluated by FimmWave.  
+        If the variable is a formula, fimmwave will return the final value resulting from evaluating the formula. All results are converted to a numeric type, unless the variable contains a statement that FimmWave is unable to evaluate, in which case the statement is returned as a string.'''
         fpStr = self.Exec(  'getvariable("%s")'%(varname)  )   
         return eval_string( fpStr )
         
