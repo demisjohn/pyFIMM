@@ -86,11 +86,9 @@ def Exec(string, vars=[]):
     See `help(<pyfimm>.PhotonDesignLib.pdPythonLib.Exec)` for more info.'''
     out = fimm.Exec(string, vars)
     if isinstance(out, list): out = strip_array(out)
-    if isinstance(out, str):
-        '''if fimm.Exec returned a string, FimmWave usually appends `\n\x00' to the end'''
-        ## TO DO: should use strip_txt()/strip_array()
+    if isinstance(out, str):  out = strip_text(out)
+    '''if fimm.Exec returned a string, FimmWave usually appends `\n\x00' to the end'''
         #if out[-2:] == '\n\x00': out = out[:-2]     # strip off FimmWave EOL/EOF chars.
-        out = strip_text(  strip_array(out)  )
     return out
 
 def strip_txt(FimmString):

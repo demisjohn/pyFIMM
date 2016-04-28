@@ -1902,6 +1902,7 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
     #end for(elements)
     
     
+    return dev
     
     ''' Techniques in FimmProp to do the above:
     Let FimMWave find the node for us:
@@ -1970,7 +1971,6 @@ Device_187734.cdev.eltlist[3].getrefid()
     
     '''
 
-    return dev
 #end import_device()
 
 # Alias to the same function, added to the Project object:
@@ -1995,4 +1995,4 @@ def import_device(project, fimmpath, name=None, overwrite=False, warn=True ):
     Optionally provide a name for the new Device node in Fimmwave.  If omitted, the name found in the Project will be used.
 
     '''
-    return _import_device('device', project, fimmpath, name=None, overwrite=False, warn=True )
+    return _import_device('device', project, fimmpath, name=None, overwrite=False, warn=warn )
