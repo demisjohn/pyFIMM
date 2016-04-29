@@ -524,7 +524,8 @@ class Device(Node):
         
         #app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}]
         fpString = self.nodestring + ".calcoutputfield(" + str(dirnum) + "," + str(sidenum) + ")   " +"\n"
-        fimm.Exec(fpString)
+        ret = fimm.Exec(fpString)
+        #if DEBUG(): print "get_output_vector():calcoutputfield():", ret
         
         #app.subnodes[{"+str(prj_num)+"}].subnodes[{"+str(node_num)+"}]
         fpString = self.nodestring + "." + dirstr + "coeffs()   " +"\n"
