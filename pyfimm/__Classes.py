@@ -41,7 +41,6 @@ strip_text = striptxt = strip_txt
 
 def strip_array(FimmArray):
     '''Remove EOL & 'None' elements of a returned list or array.'''
-    print "WARNING: strip_array Incomplete!"
     if  isinstance( FimmArray,  list ):
         if  FimmArray[0]  is None:  FimmArray = FimmArray[1:]     # omit 1st 'None' element
     return FimmArray
@@ -751,8 +750,9 @@ def import_project(filepath, name=None, overwrite=False, warn=True):
     # get modified nodename & nodenum of same-named Proj, delete/rename existing node if needed.
     newprjname, samenodenum = check_node_name( prjname, nodestring=nodestring, overwrite=overwrite, warn=warn )  
     
-    
-    if overwrite=='reuse':
+    if DEBUG(): print "import_project(overwrite=%s): "%overwrite + "newprjname, samenodenum = ", newprjname, " , ", samenodenum
+    if overwrite=='reuse' and samenodenum:
+        # if want to reuse already-open node, and there is a node with the same name
         # populate the object properties:
         prj = Project(prjname)     # new Project obj
         prj.type = 'project'  # unused!
