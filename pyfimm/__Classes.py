@@ -71,8 +71,10 @@ def check_node_name( name, nodestring="app", overwrite=False, warn=True ):
     warn : { True | False }, optional
         Print a warning if the node name exists?  Defaults to True.
     
-    overwrite : { True | False }, optional
-        If True, will try to delete an already-loaded Fimmwave project that has the same name in Fimmwave.  Will only delete the node if it is the last in the node list (This prevents breaking pyFIMM references to FimmWave Projects). Otherwise, the new FimmWave node will have it's name changed. If False, will append random digits to supplied project name and return it in `nodename`.  False by default.
+    overwrite : { True | False | 'reuse' }, optional
+        If True, will try to delete an already-loaded Fimmwave project that has the same name in Fimmwave.  Will only delete the node if it is the last in the node list (This prevents breaking pyFIMM references to FimmWave Projects). Otherwise, the new FimmWave node will have it's name changed. If False, will append random digits to supplied project name and return it in `nodename`.  
+        If 'reuse', then the node won't be deleted, so the existing Node can be referenced.
+        False by default.
     
     Returns
     -------
@@ -111,6 +113,11 @@ def check_node_name( name, nodestring="app", overwrite=False, warn=True ):
         if warn: print "WARNING: Node name `" + name + "` already exists;"
         sameprojname = SNnames[sameprojidx]
         sameprojidx = sameprojidx[0]+1  # FimmWave index to the offending node
+        
+        if overwrite == 'reuse':
+            overwrite=False
+            reuse=True
+        
         if overwrite:
             if sameprojidx == N_nodes:
                 '''It is the last node entry, so delete the offending identically-named node'''
@@ -123,9 +130,10 @@ def check_node_name( name, nodestring="app", overwrite=False, warn=True ):
                 if warn: print "node '%s'.buildNode(): Renaming existing Node #"%(name)  +  str(sameprojidx) + ", `%s` --> `%s`."%(sameprojname, newname)
                 fimm.Exec( nodestring + ".subnodes[%i].rename( "%(sameprojidx) + newname + " )"  )
         else:
-            '''change the name of this new node'''
-            name += "." +str( get_next_refnum() )       #dt.datetime.now().strftime('.%f')   # add current microsecond to the name
-            if warn: print "\tNew Node name changed to: ", name
+            if not reuse:
+                '''change the name of this new node'''
+                name += "." +str( get_next_refnum() )       #dt.datetime.now().strftime('.%f')   # add current microsecond to the name
+                if warn: print "\tNew Node name changed to: ", name
     else:
         if DEBUG(): print "Node name `%s` is unique." % name
         pass
@@ -690,10 +698,12 @@ def import_project(filepath, name=None, overwrite=False, warn=True):
         Path (absolute or relative?) to the FimmWave .prj file to import.
     
     name : string, optional
-        Optionally provide a name for the new Project node in Fimmwave.  If omitted, the Project name save in the file will be used.
+        Optionally provide a name for the new Project node in Fimmwave.  If omitted, the Project name saved in the file will be used.
     
-    overwrite : { True | False }, optional
-        If True, will overwrite an already-open Fimmwave project that has the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.  False by default.
+    overwrite : { True | False | 'reuse' }, optional
+        If True, will overwrite an already-open Fimmwave project that has the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.  
+        If 'reuse', then an existing Project will simply be pointed to by th enew object, but not altered.
+        False by default.
     
     warn : { True | False }, optional
         Print or suppress warnings when nodes will be overwritten etc.  True by default.
@@ -709,7 +719,7 @@ def import_project(filepath, name=None, overwrite=False, warn=True):
     if os.path.isfile(filepath):
         savepath = os.path.abspath(filepath)
     else:
-        ErrStr = "FimmProp Project file does not exist at the specified path `%s`" %(path)
+        ErrStr = "FimmProp Project file does not exist at the specified path `%s`" %(filepath)
         raise IOError(ErrStr)
     
     
@@ -738,36 +748,38 @@ def import_project(filepath, name=None, overwrite=False, warn=True):
     
     
     nodestring = "app"
-    newprjname, samenodenum = check_node_name( prjname, nodestring=nodestring, overwrite=overwrite, warn=warn )  # get modified nodename & nodenum of same-named Proj, delete/rename existing node if needed.
-    
-    """
-    if newprjname != prjname:
-        '''Project with same name exists'''
-        if overwrite:
-            '''delete the offending identically-named node'''
-            if warn: print "Overwriting existing Node #" + str(samenodenum) + ", '%s'." % prjname
-            fimm.Exec(nodestring+".subnodes["+str(samenodenum)+"].delete()")
-            newprjname = prjname    #use orig name
-    #end if(project already exists)
-    """
+    # get modified nodename & nodenum of same-named Proj, delete/rename existing node if needed.
+    newprjname, samenodenum = check_node_name( prjname, nodestring=nodestring, overwrite=overwrite, warn=warn )  
     
     
-    '''Create the new node:     '''
-    N_nodes = fimm.Exec("app.numsubnodes()")
-    node_num = int(N_nodes)+1
-    if DEBUG(): print "import_project(): app.subnodes ", N_nodes, ", node_num = ", node_num
-    '''app.openproject: FUNCTION - ( filename[, nodename] ): open the specified project with the specified node name'''
-    fimm.Exec("app.openproject(" + str(filepath) + ', "'+ newprjname + '" )'  )   # open the .prj file
+    if overwrite=='reuse':
+        # populate the object properties:
+        prj = Project(prjname)     # new Project obj
+        prj.type = 'project'  # unused!
+        prj.num = samenodenum   # existing node number
+        prj.built = True
+        prj.nodestring = "app.subnodes[%i]"%(prj.num)
+        prj.name = prj.Exec( 'nodename()' )
+        prj.savepath = prj.Exec( 'filename()' )
+        prj.origin = 'fimmwave'
+        
+    else:
+        '''Create the new node:     '''
+        N_nodes = fimm.Exec("app.numsubnodes()")
+        node_num = int(N_nodes)+1
+        if DEBUG(): print "import_project(): app.subnodes ", N_nodes, ", node_num = ", node_num
+        '''app.openproject: FUNCTION - ( filename[, nodename] ): open the specified project with the specified node name'''
+        fimm.Exec("app.openproject(" + str(filepath) + ', "'+ newprjname + '" )'  )   # open the .prj file
     
-    prj = Project(prjname)     # new Project obj
-    prj.type = 'project'  # unused!
-    prj.num = node_num
-    prj.built = True
-    prj.savepath = savepath
-    prj.nodestring = "app.subnodes[%i]"%(prj.num)
-    prj.name = strip_txt(  fimm.Exec(  "%s.nodename() "%(prj.nodestring)  )  )
-    prj.origin = 'fimmwave'
-    
+        # populate the object properties:
+        prj = Project(prjname)     # new Project obj
+        prj.type = 'project'  # unused!
+        prj.num = node_num
+        prj.savepath = savepath
+        prj.built = True
+        prj.nodestring = "app.subnodes[%i]"%(prj.num)
+        prj.name = strip_txt(  fimm.Exec(  "%s.nodename() "%(prj.nodestring)  )  )
+        prj.origin = 'fimmwave'
     
     
     return prj
