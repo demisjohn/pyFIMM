@@ -607,6 +607,20 @@ class Variables(Node):
         #end if( number of args )
     #end Variables.init()
     
+    def __str__(self):
+        '''How to `print()` this object.'''
+        vars = self.get_all()
+        string = "Variables Node '%s' in Project '%s'\n"%(self.name, self.parent.name)
+        string += "%i variables\n"%(len(vars))
+        for s in vars.iteritems():
+            string += "%s : %s"%(s[0], s[1])
+            seval = self.get_var(s[0])
+            if s[1] != seval:
+                '''If statement can be evaluated further'''
+                string += " = %s"%(seval)
+            string += '\n'
+        return string
+    
     def add_var(self, varname, value=None):
         '''Add a variable to the Variables Node.
         

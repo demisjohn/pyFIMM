@@ -6,6 +6,9 @@ from __globals import *         # import global vars & FimmWave connection objec
 from __pyfimm import *      # import the main module (should already be imported)
 #  NOTE: shouldn't have to duplicate the entire pyfimm file here!  Should just import the funcs we need...
 
+from __pyfimm import get_N
+
+
 from __Waveguide import Waveguide   # rectangular waveguide class
 from __Circ import Circ        # cylindrical (fiber) waveguide class
 from __Tapers import Taper,Lens      # import Taper/WGLens classes
@@ -381,9 +384,9 @@ class Device(Node):
             elif sidestr == 'rhs':
                 self.input_field_right = mode_vector - 1
         else:
-            # assume an array-like was passed, so set the input as a vector
-
+            # assume an array-like was passed, so set the input as a vector            
             ampString = str(mode_vector[0].real)+","+str(mode_vector[0].imag)
+            
             for ii in range( 1, get_N() ):
                 ampString += ","+str(mode_vector[ii].real)+","+str(mode_vector[ii].imag)
             
@@ -1867,16 +1870,17 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
     
     
     # Populate device parameters:
-    dev.__wavelength = fimm.Exec(  "%s.lambda"%(dev.nodestring)  )
+    dev.__wavelength = dev.parent.checkvar(    dev.Exec(  "lambda"  )    )
     if DEBUG(): print dev.name + ".__wavelength = ", dev.__wavelength, str(type(dev.__wavelength))
-
+    
+    dev.elements = []
     els = strip_array(   fimm.Exec( "%s.cdev.eltlist"%(dev.nodestring) )    )    # get list of elements
     if DEBUG(): print "els =", els
 
     for   i, el    in enumerate(els):
-        elnum=i+1
-        objtype = strip_text(    fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].objtype"%(elnum)  )    )
-        self.elements.append(objtype.strip())
+        elnum=i+1   # 1-indexing in FP
+        objtype = strip_text(    dev.Exec(  "cdev.eltlist[%i].objtype"%(elnum)  )    )
+        dev.elements.append(objtype.strip())
         
         if objtype.strip()=='FPsimpleJoint' or objtype == 'FPioSection':
             '''SimpleJoints,IOports have no length'''
@@ -1887,14 +1891,14 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
             refpos = int( fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].getrefid()"%(elnum)  )  )
             if DEBUG(): print "Element %i is reference --> Element %i."%(elnum, refpos)
             dev.elementpos.append( refpos )     # Append the position of the Original!
-            # dev.lengths.append(    dev.parent.checkvar(   dev.Exec( "cdev.eltlist[%i].length"%(refpos) )   )    )
-            dev.lengths.append(    dev.Exec( "cdev.eltlist[%i].length"%(refpos) )    )
+            dev.lengths.append(    dev.parent.checkvar(   dev.Exec( "cdev.eltlist[%i].length"%(refpos) )   )    )
+            #dev.lengths.append(    dev.Exec( "cdev.eltlist[%i].length"%(refpos) )    )
             if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
         elif objtype.lower().endswith('section') or objtype.strip() == 'FPtaper' or objtype.strip() == 'FPfspaceJoint' or objtype.strip() == 'FPbend':
             ''' Regular Section with a `*.length` attribute, including regular WG/Planar Sections'''
             if DEBUG(): print "Element %i is Section of type: %s"%(elnum, objtype)
             dev.elementpos.append(elnum)
-            dev.lengths.append(     strip_text(  fimm.Exec( dev.nodestring + ".cdev.eltlist[%i].length"%(elnum) )  )    )
+            dev.lengths.append(     dev.parent.checkvar(  dev.Exec( "cdev.eltlist[%i].length"%(elnum) )  )    )
             if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
         else:
             '''Eg. Lens =  FPWGLens; can't get the length simply'''
