@@ -1,0 +1,181 @@
+begin <pdApplicationInfo(1.1)>
+  FIMMWAVE 6.2.2 // applicationname applicationversion
+  1968 // licensenumber
+  6.1 (64 bit) 2995.55 // windowsversion RAM_in_MB 
+  29/04/2016 1:44:34 // savedate(dd/mm/yyyy) savetime(hh:mm:ss)
+end
+begin <fimmwave_prj(1.0)> "Example 5 - Device with Variables"
+  begin <pdVariablesNode(1.0)> "Variables 1"
+    tCore = 0.35
+    wCore = 2
+    tUClad = 1
+    etchCore = tCore+tAir
+    wSim = 30
+    tAir = 1
+    wavelength = 1.55
+    tEtch = tCore+tAir
+    wCore2 = 15
+    lCore2 = 125
+    outwg_offset = 4
+  end
+  begin <FPdeviceNode(1.4)> "1x2 Coupler"
+    "wavelength" "" // lambda [um] temperature [oC]
+    "" // materialDatabase
+    METALWALL 0           
+    METALWALL 0           
+    MAGWALL 0             
+    MAGWALL 0             
+    1 0.01 0.01 3 0 1 // propMethod propTolerance propMinStepsizeFrac jointMethod jointNormalise enmodesharing
+    5 1.1 // psWidth[um] psEtchDepth[um]
+    begin <FPcomponent(2.0)>
+      //list of subelements follow:
+      begin <FPPlanarSection(3.1)>
+        "SiN Slab" "4+wCore" 50 1.1 "" "" "" "" "" 0 //"swgname" width length depth joint_method int_method tolerance minSTPfrac enableEVscan isStraight
+        UNDEFINED "" ""       
+        UNDEFINED "" ""       
+        UNDEFINED "" ""       
+        UNDEFINED "" ""       
+        "Z" //"zCoordName"
+        BEGINPARS
+        ENDPARS
+        begin <FPPath(1.0)>
+          0 1 // isMirrored etchGrowType
+          0 "wCore" "" "0" // widthType widthL widthR "widthFn"
+          1 0 0 "0" // offsetType offsetL offsetR "offsetFn"
+          "1.5" // "depth"
+          "tCore" // "growThickness"
+          1.997 0 // one of a) {rix alpha} b) {anirix anialpha} c) matname(mx,my)
+        end
+        begin <molab_parms(1.3)>
+          1 0 "" "" // autoRun <unused> minTEfrac maxTEfrac
+          N(1e+050) N(-1e+050)  // evstart evend
+          "" "" "" ""  // maxNmodes molabOpt nx ny
+          1.55 0 NULL 0 0 // lambda hCurv solverID Hsymmetries Vsymmetries solverParms
+          // lambda hCurv solverID Hsymmetries Vsymmetries solverParms
+        end
+      end
+      begin <FPsimpleJoint(1.2)>
+        0 0 0 0 0 0 0 0 0 0 0 0 // xoff yoff xalign yalign h_tilt1 v_tilt1 rotation1 h_tilt2 v_tilt2 rotation2 method powerNormalise
+      end
+      begin <FPPlanarSection(3.1)>
+        "SiN Slab" "5+wCore2" "lCore2" 1.1 "" "" "" "" "" 0 //"swgname" width length depth joint_method int_method tolerance minSTPfrac enableEVscan isStraight
+        UNDEFINED "" ""       
+        UNDEFINED "" ""       
+        UNDEFINED "" ""       
+        UNDEFINED "" ""       
+        "Z" //"zCoordName"
+        BEGINPARS
+        ENDPARS
+        begin <FPPath(1.0)>
+          0 1 // isMirrored etchGrowType
+          0 "wCore2" "" "0" // widthType widthL widthR "widthFn"
+          1 0 0 "0" // offsetType offsetL offsetR "offsetFn"
+          "1.5" // "depth"
+          "tCore" // "growThickness"
+          1.997 0 // one of a) {rix alpha} b) {anirix anialpha} c) matname(mx,my)
+        end
+        begin <molab_parms(1.3)>
+          1 0 "" "" // autoRun <unused> minTEfrac maxTEfrac
+          N(1e+050) N(-1e+050)  // evstart evend
+          10 "" "" ""  // maxNmodes molabOpt nx ny
+          1.55 0 NULL 0 0 // lambda hCurv solverID Hsymmetries Vsymmetries solverParms
+          // lambda hCurv solverID Hsymmetries Vsymmetries solverParms
+        end
+      end
+      begin <FPsimpleJoint(1.2)>
+        0 0 0 0 0 0 0 0 0 0 0 0 // xoff yoff xalign yalign h_tilt1 v_tilt1 rotation1 h_tilt2 v_tilt2 rotation2 method powerNormalise
+      end
+      begin <FPPlanarSection(3.1)>
+        "SiN Slab" "12+wCore" 50 1.1 "" "" "" "" "" 0 //"swgname" width length depth joint_method int_method tolerance minSTPfrac enableEVscan isStraight
+        UNDEFINED "" ""       
+        UNDEFINED "" ""       
+        UNDEFINED "" ""       
+        UNDEFINED "" ""       
+        "Z" //"zCoordName"
+        BEGINPARS
+        ENDPARS
+        begin <FPPath(1.0)>
+          1 1 // isMirrored etchGrowType
+          0 "wCore" "" "0" // widthType widthL widthR "widthFn"
+          1 "outwg_offset" "outwg_offset" "0" // offsetType offsetL offsetR "offsetFn"
+          "1.5" // "depth"
+          "tCore" // "growThickness"
+          1.997 0 // one of a) {rix alpha} b) {anirix anialpha} c) matname(mx,my)
+        end
+        begin <molab_parms(1.3)>
+          1 0 "" "" // autoRun <unused> minTEfrac maxTEfrac
+          N(1e+050) N(-1e+050)  // evstart evend
+          5 "" "" ""  // maxNmodes molabOpt nx ny
+          1.55 0 NULL 0 0 // lambda hCurv solverID Hsymmetries Vsymmetries solverParms
+          // lambda hCurv solverID Hsymmetries Vsymmetries solverParms
+        end
+      end
+      begin <FPioSection(1.0)>
+        2 // numPorts
+        // list of ports follow
+        "wCore+2" "outwg_offset" 1 0 // portWidth portPosn portNModes portUseCurv
+        "wCore+2" "-outwg_offset" 1 0 // portWidth portPosn portNModes portUseCurv
+      end
+    end
+    //lhs input field
+    begin <FPInputDefinition(2.2)>
+      2 //input type
+      0 //normalise vector
+      //vector input (real,imag,...,real,imag):
+      STARTVEC
+      1 0 0 0 
+      ENDVEC
+    end
+    //rhs input field
+    begin <FPInputDefinition(2.2)>
+      1 //input type
+      0 //single mode input
+    end
+    begin <molab_parms(1.3)>
+      1 0 0 100 // autoRun <unused> minTEfrac maxTEfrac
+      N(1e+050) N(-1e+050)  // evstart evend
+      2 0 90 90  // maxNmodes molabOpt nx ny
+      "wavelength" 0 RFDMVEC 0 0 V1 90 90 0 100 0.000100 16  // lambda hCurv solverID Hsymmetries Vsymmetries solverParms
+      // lambda hCurv solverID Hsymmetries Vsymmetries solverParms
+    end
+    begin <slabwgNode(1.1)> "SiN Slab"
+      "" -1000 
+      begin <slabwg(3.3)>
+        0.5 1 0                            0 
+        0.5 1.445 0                        0 
+        2 1.445 0                          0 
+      end
+    end
+  end
+  begin <rwguideNode(1.0)> "strip2"
+    begin <rwg_wguide(2.0)>
+      "T:\Python Work\pyFIMM Simulations\Materials\refbase.mat" -1000 
+      METALWALL 0           
+      METALWALL 0           
+      METALWALL 0           
+      METALWALL 0           
+      6 0 1
+      9.3 0 2
+      6 0 3
+      ENDSLICELIST
+      begin <slabwg(3.3)>
+        12.1 1.4456 0                      0 
+      end
+      begin <slabwg(3.3)>
+        6 1.4456 0                         0 
+        0.1 AlGaAs(0.98)                   1 
+        6 1.4456 0                         0 
+      end
+      begin <slabwg(3.3)>
+        12.1 1.4456 0                      0 
+      end
+    end
+    begin <molab_parms(1.3)>
+      1 0 0 100 // autoRun <unused> minTEfrac maxTEfrac
+      N(1e+050) N(-1e+050)  // evstart evend
+      3 1 100 100  // maxNmodes molabOpt nx ny
+      1.55 0 RVEC 0 0 V2 100 0 1 300 300 15 25 0 5 5  // lambda hCurv solverID Hsymmetries Vsymmetries solverParms
+      // lambda hCurv solverID Hsymmetries Vsymmetries solverParms
+    end
+  end
+end
