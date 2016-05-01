@@ -68,7 +68,7 @@ def check_node_name( name, nodestring="app", overwrite=False, warn=False ):
         Specifies the node to check for an existing node name.  Defaults to "app.", which means you're checking top-level Project names.  If, instead, `nodestring = app.subnodes[1].` then you're checking node names within the 1st project in FimmWave.
     
     warn : { True | False }, optional
-        Print a warning if the node name exists?  Defaults to True.
+        Print a warning if the node name exists?  Defaults to False, but still prints if the global pyFIMM.set_WARN() is True, which it is by default.   Use set_WARN()/unset_WARN() to alter.
     
     overwrite : { True | False | 'reuse' }, optional
         If True, will try to delete an already-loaded Fimmwave project that has the same name in Fimmwave.  Will only delete the node if it is the last in the node list (This prevents breaking pyFIMM references to FimmWave Projects). Otherwise, the new FimmWave node will have it's name changed. If False, will append random digits to supplied project name and return it in `nodename`.  
@@ -110,6 +110,7 @@ def check_node_name( name, nodestring="app", overwrite=False, warn=False ):
     if len( sameprojidx  ) > 0:
         '''if identically-named node was found'''
         if warn or WARN(): print "WARNING: Node name `" + name + "` already exists; using option `overwrite = %s`"%(overwrite)
+        if DEBUG(): print warn, WARN()
         sameprojname = SNnames[sameprojidx]
         sameprojidx = sameprojidx[0]+1  # FimmWave index to the offending node
         
@@ -120,19 +121,19 @@ def check_node_name( name, nodestring="app", overwrite=False, warn=False ):
         if overwrite:
             if sameprojidx == N_nodes:
                 '''It is the last node entry, so delete the offending identically-named node'''
-                if warn: print "node '%s'.buildNode(): Deleting existing Node # %s"%(name,str(sameprojidx)) + ", `%s`."%(sameprojname)
+                if warn or WARN(): print "node '%s'.buildNode(): Deleting existing Node # %s"%(name,str(sameprojidx)) + ", `%s`."%(sameprojname)
                 fimm.Exec( nodestring + ".subnodes[%i].delete()"%(sameprojidx) )
             else:
                 '''It is not the last entry in the node list, so we can't delete it without breaking other pyFIMM references.'''
                 # change the name of offending node:
                 newname = name + "." +str( get_next_refnum() )
-                if warn: print "node '%s'.buildNode(): Renaming existing Node #"%(name)  +  str(sameprojidx) + ", `%s` --> `%s`."%(sameprojname, newname)
+                if warn or WARN(): print "node '%s'.buildNode(): Renaming existing Node #"%(name)  +  str(sameprojidx) + ", `%s` --> `%s`."%(sameprojname, newname)
                 fimm.Exec( nodestring + ".subnodes[%i].rename( "%(sameprojidx) + newname + " )"  )
         else:
             if not reuse:
                 '''change the name of this new node'''
                 name += "." +str( get_next_refnum() )       #dt.datetime.now().strftime('.%f')   # add current microsecond to the name
-                if warn: print "\tNew Node name changed to: ", name
+                if warn or WARN(): print "\tNew Node name changed to: ", name
     else:
         if DEBUG(): print "Node name `%s` is unique." % name
         pass
@@ -230,12 +231,12 @@ class Node(object):
             '''if identically-named node was found'''
             if overwrite:
                 '''delete the offending identically-named node'''
-                if warn: print "Deleting Node #" + str(sameprojname) + " `" + SNnames[sameprojname] + "`."
+                if warn or WARN(): print "Deleting Node #" + str(sameprojname) + " `" + SNnames[sameprojname] + "`."
                 sameprojname = sameprojname[0]+1
                 fimm.Exec("app.subnodes["+str(sameprojname)+"].delete()")
             else: 
                 '''change the name of this new node'''
-                if warn: print "WARNING: Node name `" + self.name + "` already exists;"
+                if warn or WARN(): print "WARNING: Node name `" + self.name + "` already exists;"
                 self.name += "." +str( get_next_refnum() )  #dt.datetime.now().strftime('.%f')   # add current microsecond to the name
                 print "\tNode name changed to: ", self.name
             #end if(overwrite)
@@ -256,7 +257,7 @@ class Node(object):
     
     
     
-    def _checkNodeName(self, nodestring, overwrite=False, warn=True):
+    def _checkNodeName(self, nodestring, overwrite=False, warn=False):
         '''Check for duplicate node name, overwrite if desired.
         
         nodestring : string
@@ -266,6 +267,7 @@ class Node(object):
         overwrite : { True | False }, optional
         
         warn : { True | False }, optional
+            Print warning?  Defaults to False, but still prints if the global pyFIMM.set_WARN() is True, which it is by default.   Use set_WARN()/unset_WARN() to alter.
             '''
         ## Check if top-level node name conflicts with one already in use:
         #AppSubnodes = fimm.Exec("app.subnodes")        # The pdPythonLib didn't properly handle the case where there is only one list entry to return.  Although we could now use this function, instead we manually get each subnode's name:
@@ -281,12 +283,12 @@ class Node(object):
             '''if identically-named node was found'''
             if overwrite:
                 '''delete the offending identically-named node'''
-                if warn: print "Overwriting existing Node #" + str(sameprojname) + ", `" + SNnames[sameprojname] + "`."
+                if warn or WARN(): print "Overwriting existing Node #" + str(sameprojname) + ", `" + SNnames[sameprojname] + "`."
                 sameprojname = sameprojname[0]+1
                 fimm.Exec(nodestring+".subnodes["+str(sameprojname)+"].delete()")
             else: 
                 '''change the name of this new node'''
-                if warn: print "WARNING: Node name `" + self.name + "` already exists;"
+                if warn or WARN(): print "WARNING: Node name `" + self.name + "` already exists;"
                 self.name += "." +str( get_next_refnum() )  # add numbers to the name
                 print "\tNode name changed to: ", self.name
             #end if(overwrite)
@@ -369,7 +371,7 @@ class Project(Node):
     
     """
     
-    def __init__(self, name=None, buildNode=False, overwrite=False, warn=True , *args, **kwargs):
+    def __init__(self, name=None, buildNode=False, overwrite=False, warn=False , *args, **kwargs):
         
         #build = kwargs.pop('buildNode', False)  # to buildNode or not to buildNode?
         #overwrite = kwargs.pop('overwrite', False)  # to overwrite existing project of same name
@@ -395,7 +397,7 @@ class Project(Node):
             ErrStr += "}.    Continuing..."
             print ErrStr
     
-    def buildNode(self, name=None, overwrite=False, warn=True):
+    def buildNode(self, name=None, overwrite=False, warn=False):
         '''Build the Fimmwave node of this Project.
         
         Parameters
@@ -498,7 +500,7 @@ class Project(Node):
         #end if(file exists/overwrite)
     #end savetofile()
     
-    def set_variables_node(self, fimmpath):
+    def set_variables_node(self, fimmpath, warn=False):
         '''Set the Variables Node to use for all nodes in this Project.  pyFIMM only supports the use of a single Variables node, even though FimmWave allows you to have numerous variables.  Local variables (within a Waveguide or Device node) are not supported.
         
         Use MyProj.set_variable() / get_variable() to set/get variable values.
@@ -515,7 +517,7 @@ class Project(Node):
         if isinstance(var, str):
             if self.variablesnode == None:
                 WarnStr = "Project(%s).checkvar: "%(self.name) + "String `%s` unable to be evaluated - no variables node found in the project.  "%(var) +  "(Use `MyProj.set_variables_node()` to identify the variables node.)"
-                if WARN(): print WarnStr
+                if warn or WARN(): print WarnStr
                 out = var      # return unchanged
             else:
                 try:
@@ -690,7 +692,7 @@ app.subnodes[4].subnodes[2].getvariable("a")
 
 
 
-def import_project(filepath, name=None, overwrite=False, warn=True):
+def import_project(filepath, name=None, overwrite=False, warn=False):
     '''Import a Project from a file.  
     
     filepath : string
@@ -705,7 +707,7 @@ def import_project(filepath, name=None, overwrite=False, warn=True):
         False by default.
     
     warn : { True | False }, optional
-        Print or suppress warnings when nodes will be overwritten etc.  True by default.
+        Print or suppress warnings when nodes will be overwritten etc.  False by default, but still prints if the global pyFIMM.WARN() is True, which it is by default.  Use set_WARN()/unset_WARN() to alter.
     
     '''
     
