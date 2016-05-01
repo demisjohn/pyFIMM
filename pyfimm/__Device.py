@@ -61,6 +61,8 @@ class Device(Node):
     
     elementpos : list
         List containing integers, indicating position (eltlist[position]) that each element was inserted into in the fimmwave Device.
+        You can iterate through this list to reference each element in the device, using the list value as the `eltnum[x]` - this will also account for Referenced elements (in an imported Dev), as the list value will point to the original element rather than the reference.
+        For example, if the 1st element is a Refernce to the 4th element, `elementpos` might look like this:  `elementpos = [4, 2, 3, 4, 5]`
     
     jointpos : list
         List containing integers, indicating position (eltlist[position]) of the simple joints in the fimmwave Device.
@@ -1875,7 +1877,8 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
     if DEBUG(): print dev.name + ".__wavelength = ", dev.__wavelength, str(type(dev.__wavelength))
     
     dev.elements = []
-    els = strip_array(   fimm.Exec( "%s.cdev.eltlist"%(dev.nodestring) )    )    # get list of elements
+    els = dev.Exec( "cdev.eltlist" )    # get list of elements
+    if isinstance(els, str): els=[els]
     if DEBUG(): print "els =", els
 
     for   i, el    in enumerate(els):
