@@ -1878,7 +1878,7 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
     
     dev.elements = []
     els = dev.Exec( "cdev.eltlist" )    # get list of elements
-    if isinstance(els, str): els=[els]
+    if isinstance(els, str): els=[els]  # if only one element, pdApp.Exec de-lists the array so it's just a string.  must re-array it here.
     if DEBUG(): print "els =", els
 
     for   i, el    in enumerate(els):
@@ -1886,10 +1886,18 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
         objtype = strip_text(    dev.Exec(  "cdev.eltlist[%i].objtype"%(elnum)  )    )
         dev.elements.append(objtype.strip())
         
-        if objtype.strip()=='FPsimpleJoint' or objtype == 'FPioSection':
+        if objtype=='FPsimpleJoint' or objtype == 'FPioSection':
             '''SimpleJoints,IOports have no length'''
             if DEBUG(): print "Element %i is Joint: %s"%(elnum, objtype)
             dev.jointpos.append(elnum)
+            
+        elif objtype.lower().endswith('section') or objtype.strip() == 'FPtaper' or objtype.strip() == 'FPfspaceJoint' or objtype.strip() == 'FPbend':
+            ''' Regular Section with a `*.length` attribute, including regular WG/Planar Sections'''
+            if DEBUG(): print "Element %i is Section of type: %s"%(elnum, objtype)
+            dev.elementpos.append(elnum)
+            dev.lengths.append(     dev.parent.checkvar(  dev.Exec( "cdev.eltlist[%i].length"%(elnum) )  )    )
+            if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
+            
         elif objtype == 'FPRefSection':
             ''' This element references another element '''
             refpos = int( fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].getrefid()"%(elnum)  )  )
@@ -1898,12 +1906,7 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
             dev.lengths.append(    dev.parent.checkvar(   dev.Exec( "cdev.eltlist[%i].length"%(refpos) )   )    )
             #dev.lengths.append(    dev.Exec( "cdev.eltlist[%i].length"%(refpos) )    )
             if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
-        elif objtype.lower().endswith('section') or objtype.strip() == 'FPtaper' or objtype.strip() == 'FPfspaceJoint' or objtype.strip() == 'FPbend':
-            ''' Regular Section with a `*.length` attribute, including regular WG/Planar Sections'''
-            if DEBUG(): print "Element %i is Section of type: %s"%(elnum, objtype)
-            dev.elementpos.append(elnum)
-            dev.lengths.append(     dev.parent.checkvar(  dev.Exec( "cdev.eltlist[%i].length"%(elnum) )  )    )
-            if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
+            
         else:
             '''Eg. Lens =  FPWGLens; can't get the length simply'''
             print "WARNING: Element %i: "%(elnum) + "Unsupported Element Type:", objtype
