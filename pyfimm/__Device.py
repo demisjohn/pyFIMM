@@ -1847,7 +1847,8 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
     ret = strip_txt( ret )
     if DEBUG(): print "\tReturned:\n%s"%(ret)
     dev.nodestring = devname    # use this to reference the device in Fimmwave
-
+    
+    # Identify the type of element:
     ret = strip_txt(  fimm.Exec( '%s.objtype'%(dev.nodestring) )  )
     if ret != 'FPDeviceNode':
         ErrStr = "The referenced node `%s` is not a FimmProp Device or couldn't be found!\n\t"%(fimmpath) + "FimmWave returned object type of:\n\t`%s`."%(ret)

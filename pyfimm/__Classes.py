@@ -56,7 +56,7 @@ def eval_string(fpStr):
         return fpStr
 #end eval_string()
 
-def check_node_name( name, nodestring="app", overwrite=False, warn=True ):
+def check_node_name( name, nodestring="app", overwrite=False, warn=False ):
     ''' See if the node name already exists in FimmWave, and return a modified project name (with random numbers appended) if it exists.
     
     Parameters
@@ -109,7 +109,7 @@ def check_node_name( name, nodestring="app", overwrite=False, warn=True ):
     #if DEBUG(): print "Node._checkNodeName(): [sameprojname] = ", sameprojname, "\nSNnames= ", SNnames
     if len( sameprojidx  ) > 0:
         '''if identically-named node was found'''
-        if warn: print "WARNING: Node name `" + name + "` already exists;"
+        if warn or WARN(): print "WARNING: Node name `" + name + "` already exists; using option `overwrite = %s`"%(overwrite)
         sameprojname = SNnames[sameprojidx]
         sameprojidx = sameprojidx[0]+1  # FimmWave index to the offending node
         
