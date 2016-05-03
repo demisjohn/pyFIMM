@@ -313,7 +313,7 @@ class Device(Node):
         return self.__wavelength
     
     
-    def set_input(self,mode_vector, side=None, normalize=False, warn=True):
+    def set_input(self,mode_vector, side=None, normalize=False, warn=False):
         '''Set input ("incident") field vector - takes a list with amplitude coefficients (complex) for each mode number, as entered into the "Vector" mode of the "View > Set Input" menu of a FimmWave Device.
         `set_inc_field()` is an alias to this function.
         
@@ -351,7 +351,7 @@ class Device(Node):
         
         if side == None:
             side='lhs'  # default value if unset
-            if warn: print "WARNING: Device '%s'.set_input_field():"%self.name + " set to Left-Hand-Side input, since unspecified."
+            if warn or WARN(): print "WARNING: Device '%s'.set_input_field():"%self.name + " set to Left-Hand-Side input, since unspecified."
         else:
             side = side.lower().strip()     # make lower case, strip whitespace
         
@@ -908,7 +908,7 @@ class Device(Node):
         return self.get_field( 'rix', zpoints=zpoints, zmin=zmin, zmax=zmax, xcut=xcut, ycut=ycut, direction='total', calc=calc)
     
     
-    def get_field(self, component, zpoints=3000, zmin=0.0, zmax=None, xcut=0.0, ycut=0.0, direction='total', calc=False, warn=True):
+    def get_field(self, component, zpoints=3000, zmin=0.0, zmax=None, xcut=0.0, ycut=0.0, direction='total', calc=False, warn=False):
         '''Return the field specified by `component` versus Z.
         Expects that the input field has been set with `set_input_field()`.
         
@@ -1021,7 +1021,7 @@ class Device(Node):
         # Tell FimmProp to calculate the Z fields:
         if not calc:
             if not self.calculated: 
-                if warn: print "WARNING: Device.get_field(): Device `%s` was not calculated before extracting fields - may return [zeros]."%(self.name)
+                if warn or WARN(): print "WARNING: Device.get_field(): Device `%s` was not calculated before extracting fields - may return [zeros]."%(self.name)
                 #print "Device.get_field(): Calculating the Device..."
                 #self.calc(zpoints=zpoints, zmin=zmin, zmax=zmax, xcut=xcut, ycut=ycut)
         else:
@@ -1041,7 +1041,7 @@ class Device(Node):
     field = get_field
     
     
-    def plot(self, component, zpoints=3000, zmin=0.0, zmax=None, xcut=0.0, ycut=0.0, direction='total', refractive_index=False, return_handles=False, calc=False, title=None, warn=True):
+    def plot(self, component, zpoints=3000, zmin=0.0, zmax=None, xcut=0.0, ycut=0.0, direction='total', refractive_index=False, return_handles=False, calc=False, title=None, warn=False):
         '''Plot the fields in this device along the Z (propagation) direction.
         Requires that the input field has been set with `set_input_field()`.
         
@@ -1145,7 +1145,7 @@ class Device(Node):
         else:
             ErrStr = "Device.plot(): Unrecognized `direction` passed: `%s`."%(direction) 
             #raise ValueError(ErrStr)
-            if warn: print "WARNING: Unrecognized `direction` passed: `%s`."%(direction) 
+            if warn or WARN(): print "WARNING: Unrecognized `direction` passed: `%s`."%(direction) 
             dirstr=direction
         
         if not calc:
@@ -1223,7 +1223,7 @@ class Device(Node):
 ####                                                        ####
 ################################################################
     
-    def buildNode(self, name=None, parent=None, overwrite=False, warn=True):
+    def buildNode(self, name=None, parent=None, overwrite=False, warn=False):
         '''Build the Fimmwave node of this Device.
         
         Parameters
@@ -1747,7 +1747,7 @@ class Device(Node):
 
 
 # Create new Device objects by importing from another Project:
-def _import_device( obj='device', project=None, fimmpath=None, name=None, overwrite=False, warn=True ):
+def _import_device( obj='device', project=None, fimmpath=None, name=None, overwrite=False, warn=False ):
     '''This function allows you to use the FimmProp GUI for Device construction, and then interact with those Devices via pyFIMM (acquiring fields, saving plots etc.).
     The Device's parent Project should have been created in pyFIMM beforehand.  To grab a Device from a file, use `newprj = pyFIMM.import_Project()` to generate the Project from a file, and then call `newprj.import_Device()`.
     
@@ -1768,7 +1768,7 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
         Specify the pyFIMM Project from which to acquire the Device.
 
     fimmpath : string, required
-        The FimmProp path to the Device, within the specified project.  This takes the form of something like "DevName" if the device named "DevName" is at the top-level of the FimmProp Project, or "NodeName/SubDevName" is SubDevName is under another Node.
+        The FimmProp path to the Device, within the specified project.  This takes the form of something like "DevName" if the device named "DevName" is at the top-level of the FimmProp Project, or "NodeName/SubDevName" if SubDevName is under another Node.
     
     name : string, optional
     Optionally provide a name for the new Device node in Fimmwave.  If omitted, the name found in the Project will be used.
@@ -1939,8 +1939,7 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
     determine total device length
     Do NOT look inside each element - obviates ability to make paths etc.
 
-    Var wg=app.subnodes[1].subnodes[3].cdev.getwg(0)
-    could not find item "Var wg"
+    &Var wg=app.subnodes[1].subnodes[3].cdev.getwg(0)
 
 app.subnodes[1].subnodes[3].cdev.getwg(0)
 app.subnodes[1].subnodes[3].cdev.eltlist
@@ -1998,7 +1997,7 @@ Device_187734.cdev.eltlist[3].getrefid()
 Project.import_device = _import_device
 
 
-def import_device(project, fimmpath, name=None, overwrite=False, warn=True ):
+def import_device(project, fimmpath, name=None, overwrite=False, warn=False ):
     ''' Please see `help(pyfimm._import_device)` for complete help, the following is only partial documentation.
     This function will return a new pyFIMM Device object pointing to a Device that exists in an imported Project (ie. one created in FimmProp & loaded from a file, rather than via pyFIMM).
     This allows you to use the FimmProp GUI for Device construction, and then interact with those Devices via pyFIMM (acquiring fields, saving plots etc.).
