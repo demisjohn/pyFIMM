@@ -1841,7 +1841,7 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
 
     devname = "Device_%i" %(  get_next_refnum()  )  # generate dev reference name
     # create fimmwave reference to the Device:
-    fpStr = "Ref& %s = "%(devname) + project.nodestring + '.findnode("%s")'%(fimmpath)
+    fpStr = 'Ref& %s = %s'%(devname,project.nodestring) + '.findnode("%s")'%(fimmpath)
     if DEBUG(): print fpStr
     ret = fimm.Exec( fpStr )
     ret = strip_txt( ret )
@@ -1851,7 +1851,7 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
     # Identify the type of element:
     ret = strip_txt(  fimm.Exec( '%s.objtype'%(dev.nodestring) )  )
     if ret != 'FPDeviceNode':
-        ErrStr = "The referenced node `%s` is not a FimmProp Device or couldn't be found!\n\t"%(fimmpath) + "FimmWave returned object type of:\n\t`%s`."%(ret)
+        ErrStr = "The referenced node `%s` is not a FimmProp Device or couldn't be found!\n\t"%(fimmpath) + "FimmWave returned object type:\n\t`%s`."%(ret)
         raise ValueError(ErrStr)
     
     if isinstance( obj, Project):
@@ -1888,24 +1888,29 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
         dev.elements.append(objtype.strip())
         
         if objtype=='FPsimpleJoint' or objtype == 'FPioSection':
-            '''SimpleJoints,IOports have no length'''
+            '''SimpleJoints,IOports have no length, 
+            don't add them as regular elements'''
             if DEBUG(): print "Element %i is Joint: %s"%(elnum, objtype)
             dev.jointpos.append(elnum)
-            
+        
         elif objtype.lower().endswith('section') or objtype.strip() == 'FPtaper' or objtype.strip() == 'FPfspaceJoint' or objtype.strip() == 'FPbend':
             ''' Regular Section with a `*.length` attribute, including regular WG/Planar Sections'''
+            if objtype == 'FPRefSection':
+                ''' This element references another element:
+                resolve the reference & get the properties'''
+                refpos = int( fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].getrefid()"%(elnum)  )  )
+                if DEBUG(): print "Element %i is reference --> Element %i."%(elnum, refpos)
+                dev.elementpos.append( refpos )     # Append the position of the Original!
+                elnum = refpos      # point to the original element
+                #dev.lengths.append(    dev.parent.checkvar(   dev.Exec( "cdev.eltlist[%i].length"%(refpos) )   )    )
+                #dev.lengths.append(    dev.Exec( "cdev.eltlist[%i].length"%(refpos) )    )
+                #if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
+            #end if(ReferenceSection)
+            
+            
             if DEBUG(): print "Element %i is Section of type: %s"%(elnum, objtype)
             dev.elementpos.append(elnum)
             dev.lengths.append(     dev.parent.checkvar(  dev.Exec( "cdev.eltlist[%i].length"%(elnum) )  )    )
-            if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
-            
-        elif objtype == 'FPRefSection':
-            ''' This element references another element '''
-            refpos = int( fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].getrefid()"%(elnum)  )  )
-            if DEBUG(): print "Element %i is reference --> Element %i."%(elnum, refpos)
-            dev.elementpos.append( refpos )     # Append the position of the Original!
-            dev.lengths.append(    dev.parent.checkvar(   dev.Exec( "cdev.eltlist[%i].length"%(refpos) )   )    )
-            #dev.lengths.append(    dev.Exec( "cdev.eltlist[%i].length"%(refpos) )    )
             if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
             
         else:
