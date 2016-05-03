@@ -539,6 +539,137 @@ class Project(Node):
 # Note!  Project.import_device() is added in the file __Device.py, to avoid cyclic imports!
 
 
+
+
+def import_project(filepath, name=None, overwrite=False, warn=False):
+    '''Import a Project from a file.  
+    
+    filepath : string
+        Path (absolute or relative?) to the FimmWave .prj file to import.
+    
+    name : string, optional
+        Optionally provide a name for the new Project node in Fimmwave.  If omitted, the Project name saved in the file will be used.
+    
+    overwrite : { True | False | 'reuse' }, optional
+        If True, will overwrite an already-open Fimmwave project that has the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.  
+        If 'reuse', then an existing Project will simply be pointed to by th enew object, but not altered.
+        False by default.
+    
+    warn : { True | False }, optional
+        Print or suppress warnings when nodes will be overwritten etc.  False by default, but still prints if the global pyFIMM.WARN() is True, which it is by default.  Use set_WARN()/unset_WARN() to alter.
+    
+    '''
+    
+    '''For ImportDevice: Path should be path (string) to the FimmWave node, eg. 'Dev1' if Device withthat name is in the top-level of the project, or 'Dev1/SubDev' if the target Device is underneath another Device node.'''
+    # Create Project object.  Set the "savepath", 'num', 'name' attributes of the project.
+    # return a project object
+    
+    if DEBUG(): print "importProject():"
+    
+    if os.path.isfile(filepath):
+        savepath = os.path.abspath(filepath)
+    else:
+        ErrStr = "FimmProp Project file does not exist at the specified path `%s`" %(filepath)
+        raise IOError(ErrStr)
+    
+    
+    # Open the project file, and 
+    #   make sure the project name isn't already in the FimmWave node list (will pop a FimmWave error)
+    if name is None:
+        # Get name from the Project file we're opening
+        prjf = open(filepath)
+        prjtxt = prjf.read()    # load the entire file
+        prjf.close()
+    
+        import re   # regex matching
+        ''' In the file: 
+        begin <fimmwave_prj(1.0)> "My Project Name"
+        '''
+        prjname_pattern = re.compile(     r'.*begin \<fimmwave_prj\(\d\.\d\)\> "(.*)".*'    )
+        # perform the search:
+        m = prjname_pattern.search(  prjtxt  )      # use regex pattern to extract project name
+        # m will contain any 'groups' () defined in the RegEx pattern.
+        if m:
+            prjname = m.group(1)	# grab 1st group from RegEx
+            if DEBUG(): print 'Project Name found:', m.groups(), ' --> ', prjname
+        #groups() prints all captured groups
+    else:
+        prjname = name
+    
+    
+    nodestring = "app"
+    # get modified nodename & nodenum of same-named Proj, delete/rename existing node if needed.
+    newprjname, samenodenum = check_node_name( prjname, nodestring=nodestring, overwrite=overwrite, warn=warn )  
+    
+    if DEBUG(): print "import_project(overwrite=%s): "%overwrite + "newprjname, samenodenum = ", newprjname, " , ", samenodenum
+    if overwrite=='reuse' and samenodenum:
+        # if want to reuse already-open node, and there is a node with the same name
+        # populate the object properties:
+        prj = Project(prjname)     # new Project obj
+        prj.type = 'project'  # unused!
+        prj.num = samenodenum   # existing node number
+        prj.built = True
+        prj.nodestring = "app.subnodes[%i]"%(prj.num)
+        prj.name = prj.Exec( 'nodename()' )
+        prj.savepath = prj.Exec( 'filename()' )
+        prj.origin = 'fimmwave'
+        
+    else:
+        '''Create the new node:     '''
+        N_nodes = fimm.Exec("app.numsubnodes()")
+        node_num = int(N_nodes)+1
+        if DEBUG(): print "import_project(): app.subnodes ", N_nodes, ", node_num = ", node_num
+        '''app.openproject: FUNCTION - ( filename[, nodename] ): open the specified project with the specified node name'''
+        fimm.Exec("app.openproject(" + str(filepath) + ', "'+ newprjname + '" )'  )   # open the .prj file
+    
+        # populate the object properties:
+        prj = Project(prjname)     # new Project obj
+        prj.type = 'project'  # unused!
+        prj.num = node_num
+        prj.savepath = savepath
+        prj.built = True
+        prj.nodestring = "app.subnodes[%i]"%(prj.num)
+        prj.name = strip_txt(  fimm.Exec(  "%s.nodename() "%(prj.nodestring)  )  )
+        prj.origin = 'fimmwave'
+    
+    
+    return prj
+#end ImportProject()
+
+# Alias to the same function:
+import_Project = import_project
+
+'''
+## FimmWave commands for opening a project file:
+app.openproject(T:\MZI Encoder\MZI Encoder v8.prj,"")  <-- see if 2nd arg is NodeName, if so, could obviate issue with re-opening a project (name already exists)
+app.subnodes[1].nodename
+    MZI Encoder
+    
+app.subnodes[1].findnode(/SiN Slab)
+    could not find node "/SiN Slab"
+    
+app.subnodes[1].findnode(SiN Slab)
+app.subnodes[1].findnode(SiN Slab)
+app.subnodes[1].filename
+    T:\MZI Encoder\MZI Encoder v8.prj
+    
+    
+app.openproject(T:\MZI Encoder\MZI Encoder v8.prj,"")
+app.subnodes[1].delete()
+app.openproject(T:\MZI Encoder\MZI Encoder v8.prj,"")
+app.subnodes[1].writeblock()
+    begin <fimmwave_prj(1.0)> "MZI Encoder"
+      begin <pdVariablesNode(1.0)> "Variables 1"
+        tCore = 0.06
+        wCore = 1.25
+        tUClad = 1
+        
+        ...
+        ...
+        ...
+'''
+
+
 class Variables(Node):
     '''Variables( project, fimmpath )
     A class to reference a FimmProp Variables node.
@@ -691,134 +822,6 @@ app.subnodes[4].subnodes[2].getvariable("a")
 #end class(Variables)
 
 
-
-def import_project(filepath, name=None, overwrite=False, warn=False):
-    '''Import a Project from a file.  
-    
-    filepath : string
-        Path (absolute or relative?) to the FimmWave .prj file to import.
-    
-    name : string, optional
-        Optionally provide a name for the new Project node in Fimmwave.  If omitted, the Project name saved in the file will be used.
-    
-    overwrite : { True | False | 'reuse' }, optional
-        If True, will overwrite an already-open Fimmwave project that has the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.  
-        If 'reuse', then an existing Project will simply be pointed to by th enew object, but not altered.
-        False by default.
-    
-    warn : { True | False }, optional
-        Print or suppress warnings when nodes will be overwritten etc.  False by default, but still prints if the global pyFIMM.WARN() is True, which it is by default.  Use set_WARN()/unset_WARN() to alter.
-    
-    '''
-    
-    '''For ImportDevice: Path should be path (string) to the FimmWave node, eg. 'Dev1' if Device withthat name is in the top-level of the project, or 'Dev1/SubDev' if the target Device is underneath another Device node.'''
-    # Create Project object.  Set the "savepath", 'num', 'name' attributes of the project.
-    # return a project object
-    
-    if DEBUG(): print "importProject():"
-    
-    if os.path.isfile(filepath):
-        savepath = os.path.abspath(filepath)
-    else:
-        ErrStr = "FimmProp Project file does not exist at the specified path `%s`" %(filepath)
-        raise IOError(ErrStr)
-    
-    
-    # Open the project file, and 
-    #   make sure the project name isn't already in the FimmWave node list (will pop a FimmWave error)
-    if name is None:
-        # Get name from the Project file we're opening
-        prjf = open(filepath)
-        prjtxt = prjf.read()    # load the entire file
-        prjf.close()
-    
-        import re   # regex matching
-        ''' In the file: 
-        begin <fimmwave_prj(1.0)> "My Project Name"
-        '''
-        prjname_pattern = re.compile(     r'.*begin \<fimmwave_prj\(\d\.\d\)\> "(.*)".*'    )
-        # perform the search:
-        m = prjname_pattern.search(  prjtxt  )      # use regex pattern to extract project name
-        # m will contain any 'groups' () defined in the RegEx pattern.
-        if m:
-            prjname = m.group(1)	# grab 1st group from RegEx
-            if DEBUG(): print 'Project Name found:', m.groups(), ' --> ', prjname
-        #groups() prints all captured groups
-    else:
-        prjname = name
-    
-    
-    nodestring = "app"
-    # get modified nodename & nodenum of same-named Proj, delete/rename existing node if needed.
-    newprjname, samenodenum = check_node_name( prjname, nodestring=nodestring, overwrite=overwrite, warn=warn )  
-    
-    if DEBUG(): print "import_project(overwrite=%s): "%overwrite + "newprjname, samenodenum = ", newprjname, " , ", samenodenum
-    if overwrite=='reuse' and samenodenum:
-        # if want to reuse already-open node, and there is a node with the same name
-        # populate the object properties:
-        prj = Project(prjname)     # new Project obj
-        prj.type = 'project'  # unused!
-        prj.num = samenodenum   # existing node number
-        prj.built = True
-        prj.nodestring = "app.subnodes[%i]"%(prj.num)
-        prj.name = prj.Exec( 'nodename()' )
-        prj.savepath = prj.Exec( 'filename()' )
-        prj.origin = 'fimmwave'
-        
-    else:
-        '''Create the new node:     '''
-        N_nodes = fimm.Exec("app.numsubnodes()")
-        node_num = int(N_nodes)+1
-        if DEBUG(): print "import_project(): app.subnodes ", N_nodes, ", node_num = ", node_num
-        '''app.openproject: FUNCTION - ( filename[, nodename] ): open the specified project with the specified node name'''
-        fimm.Exec("app.openproject(" + str(filepath) + ', "'+ newprjname + '" )'  )   # open the .prj file
-    
-        # populate the object properties:
-        prj = Project(prjname)     # new Project obj
-        prj.type = 'project'  # unused!
-        prj.num = node_num
-        prj.savepath = savepath
-        prj.built = True
-        prj.nodestring = "app.subnodes[%i]"%(prj.num)
-        prj.name = strip_txt(  fimm.Exec(  "%s.nodename() "%(prj.nodestring)  )  )
-        prj.origin = 'fimmwave'
-    
-    
-    return prj
-#end ImportProject()
-
-# Alias to the same function:
-import_Project = import_project
-
-'''
-## FimmWave commands for opening a project file:
-app.openproject(T:\MZI Encoder\MZI Encoder v8.prj,"")  <-- see if 2nd arg is NodeName, if so, could obviate issue with re-opening a project (name already exists)
-app.subnodes[1].nodename
-    MZI Encoder
-    
-app.subnodes[1].findnode(/SiN Slab)
-    could not find node "/SiN Slab"
-    
-app.subnodes[1].findnode(SiN Slab)
-app.subnodes[1].findnode(SiN Slab)
-app.subnodes[1].filename
-    T:\MZI Encoder\MZI Encoder v8.prj
-    
-    
-app.openproject(T:\MZI Encoder\MZI Encoder v8.prj,"")
-app.subnodes[1].delete()
-app.openproject(T:\MZI Encoder\MZI Encoder v8.prj,"")
-app.subnodes[1].writeblock()
-    begin <fimmwave_prj(1.0)> "MZI Encoder"
-      begin <pdVariablesNode(1.0)> "Variables 1"
-        tCore = 0.06
-        wCore = 1.25
-        tUClad = 1
-        
-        ...
-        ...
-        ...
-'''
 
 class Material(object):
     """Create a new pyFimm Material with refractive index & k (loss coefficient):
