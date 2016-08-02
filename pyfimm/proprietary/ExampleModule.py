@@ -7,12 +7,13 @@ but importing it as part of pyFIMM gives it access to all the pyFIMM methods etc
 
 
 This example module adds the following functions:
-    Adds a `set_temperature()` method to the `Waveguide` object
-and
     Creates a new function `get_total_width()` as part of this module.
+and
+    Adds a `set_temperature()` method to the `Waveguide` object
+    Adds a `get_temperature()` method to the `Waveguide` object
 
 The functions can then be called as so:
-    >>> pf.ExampleModule.get_total_width(  WaveguideObj1, WaveguideObj2, WaveguideObj3 )
+    >>> pf.ExampleModule.get_total_width(  WaveguideObj1, WaveguideObj2, WaveguideObj3  )
 and
     >>> WaveguideObj1.set_temperature( 451.0 )   # set the waveguide's temperature
 '''
@@ -55,6 +56,8 @@ def get_total_width(  *args  ):
 from ..__Waveguide import *          # import the Waveguide class, to add functions to it.
 
 # `self` here will be the Waveguide object, once this func is called as a method of that object
+#       Use a temporary place-holder name.  The real name comes later when we add it to the Waveguide Class
+#       Double-underscores (___ is a convention that means this function should be hidden from the user.  We don't want anyone calling this function directly (ie. not as a Waveguide method).
 def __WG_set_temperature(self,temp):
     '''Set temperature of this Waveguide.  FimmWave default is -1000.0.
     Waveguide Object should have already been built.
@@ -71,12 +74,19 @@ def __WG_set_temperature(self,temp):
     
     if not self.built: raise UserWarning( "Waveguide.set_temperature(): This waveguide has not been built yet!  Please call WaveguideObj.buildNode() first!" )
     
+    # Construct the command-string to send to FimmWave:
     wgString = self.nodestring + ".temp = " + str(temp)
     # nodestring is the fimmwave string to reference this Waveguide node.
-    fimm.Exec(wgString)
+    # So this command expands to something like:
+    #   app.subnodes[1].subnodes[5].temp = 451.0
+    
+    # Execute the above command:
+    fimm.Exec(wgString)    
+#end  __WG_set_temperature()
 
 # add the above function to the Waveguide class:
 Waveguide.set_temperature   =   __WG_set_temperature  
+# This determines the real name of the function as a Waveguide method, and points to this function.
 
 
 def __WG_get_temperature(self):
@@ -85,8 +95,10 @@ def __WG_get_temperature(self):
     Returns
     -------
     temp : float
-        Temperature in degrees Celcius.  Defaults to `-1000.0` if unset.'''
+        Temperature in degrees Celcius.  Defaults to `-1000.0` if unset.
+    '''
     return fimm.Exec(  self.nodestring + ".temp"  )
+#end __WG_get_temperature()
 
 # add the above function to the Waveguide class:
 Waveguide.get_temperature   =   __WG_get_temperature
