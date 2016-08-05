@@ -32,7 +32,7 @@ class Cavity(object):
         Device representing the right-hand side of the cavity.
     
     IMPORTANT NOTE: Wherever you choose to split the cavity (arbitrary), the waveguide cross-section on either side of the split must be the same. For example, for whichever waveguide is near the desired splitting point, cut that waveguide in half, with half in the LHS_Dev & half in the RHS_Dev, so that the waveguide cross section on either side of the split is the same.  
-    This is so that the modal basis set of each half of the cavity will be the same - ie. the eigenvectors calculated are with respect to the modes of these central waveguides, and if each side's central waveguide had different modes (because they were different waveguide geometries), the eigenvector would not represent the launch of the same superposition of modes into each RHS & LHS device.
+    This is so that the modal basis set of each half of the cavity will be the same - ie. the eigenvectors calculated will be with respect to the modes of these central waveguides, and if each side's central waveguide had different modes (because they were different waveguide geometries), the eigenvector would not represent the same superposition of modes into each RHS & LHS device.
     
     
     Attributes
@@ -73,19 +73,19 @@ class Cavity(object):
     eigenvalues, eigenvectors : numpy arrays
         The eigenvalues & eigenvectors at each wavelength.  There will be N eigenvalues at each wavelength, corresponding to each lateral optical mode of the central Waveguide making up the Devices (the WG at the split).
         The eigenvalues are the (complex) magnitude & phase that would be applied to a field after a roundtrip in the cavity.  Thus a negative magnitude means the field decays each roundtrip (radiation loss or something), and a Zero-phase means the field is in-phase with itself (resonant) and can constructively interfere with itself after a round-trip.
-        The eigenvectors are the magnitudes/coefficients of each central-section mode to get the above eigenvalues.  You would launch the central-section modes at these magnitudes/phases (producing a composite superposition) to produce the optical fields corresponding to the eigenvalue (to get that round-trip amplitude & phase).
+        The eigenvectors are the magnitudes/coefficients of each mode in the basis set (the modes of the central-section WG) to get the above eigenvalues.  You would launch the central-section modes at these magnitudes/phases to produce the optical fields corresponding to the eigenvalue (to get that round-trip amplitude & phase).
         For eigenvalues & eigenvectors, indexing is like so:
             >>> eigenvalues[Iwavelength][Imodenum]
         Where `wavelengths[Iwavelength]` tells you which wavelength you're inspecting, and `Imodenum` tells you which mode number you're inspecting.
     
     resWLs , resEigVals, resEigVects : list of complex floats
-        The Resonance wavelengths and corresponding EigenValues (complex numbers) & EigenVectors.
-        Each list index corresponds to a lateral mode, and there may be multiple resonances found for each mode.  If no resonances were located, `None` is entered into the list for that mode.
+        The Resonance wavelengths and corresponding EigenValues & EigenVectors (complex numbers).
+        Each list index corresponds to a cavity mode with unique lateral mode-profile, and there may be multiple resonances found for each mode.  If no resonances were located, `None` is entered into the list for that mode.
         Indexing is similar to `eigenvalues` & `eigenvectors`
     
     pseudo-attributes:
-    mode(N) : select one or more lateral (waveguide) mode to extract data for, or pass the string 'all' to work with all modes.  This actually (invisibly to the user) returns a `CavityMode` object, which can perform other actions on the selected mode.  
-        See `help(CavityMode)` for more info on the usage & attributes/methods available.
+    mode(N) : select one or more cavity modes to extract data for, or pass the string 'all' to work with all modes.  This actually (invisibly to the user) returns a `CavityMode` object, which can perform other actions on the selected mode.  
+        See `help(CavityObj.mode('all')` or`help(CavityMode)`  for more info on the usage & attributes/methods available.
     
     
     Examples
@@ -182,7 +182,7 @@ class Cavity(object):
             The wavelengths at which eigenvalues were calculated. This is a direct copy of the `WLs` array passed to the calc() function.
         
         eigenvalues, eigenvectors : 2-D list of floats
-            The complex eigenvalues & eigenvectors at each of the calculated wavelengths. First dimension of the array is to choose lateral mode (up to get_N() ).  eg.  [   [EigV_mode0_WL0, EigV_mode0_WL1, ... EigV_mode0_WLN],  [EigV_mode1_WL0, EigV_mode1_WL1, ... EigV_mode1_WLN],    ... ,   [EigV_modeN_WL0, EigV_modeN_WL1, ... EigV_modeN_WLN]    ]
+            The complex eigenvalues & eigenvectors at each of the calculated wavelengths. First dimension of the array is to choose lateral cavity mode (up to get_N() ).  eg.  [   [EigV_mode0_WL0, EigV_mode0_WL1, ... EigV_mode0_WLN],  [EigV_mode1_WL0, EigV_mode1_WL1, ... EigV_mode1_WLN],    ... ,   [EigV_modeN_WL0, EigV_modeN_WL1, ... EigV_modeN_WLN]    ]
             The imaginary part of the eigenvalue corresponds to the round-trip optical phase, and the real part corresponds to the cavity loss.  The eigenvectors are vectors containing the amplitudes of each mode required to attain the corresponding eigenvalue, and they can be input directly into a Device via `Device.set_input( <vector> )`.
             
         
@@ -196,9 +196,9 @@ class Cavity(object):
         Examples
         -------
         Calculate cavity modes in the range of wavelengths from 990nm to 1200nm:
-        >>> CavityObject.calc(  numpy.arange( 0.990, 1.200, 0.01 )  )
+            >>> CavityObject.calc(  numpy.arange( 0.990, 1.200, 0.01 )  )
         or just at a few wavelengths:
-        >>> CavityObject.calc(  [1.000, 1.050, 1.110]  )
+            >>> CavityObject.calc(  [1.000, 1.050, 1.110]  )
         
         Calculated eigenvalues can be accessed in the resulting numpy.array:
             >>> CavityObj.eigenvalues
@@ -210,7 +210,7 @@ class Cavity(object):
         '''
         self.wavelengths = np.array(WLs)
         self.eigenvalues, self.eigenvectors = self.__CavityModeCalc( self.LHS_Dev, self.RHS_Dev, WLs , Display=Display)       # The main calculation function/loop
-        self.resWLs, self.resEigVals, self.resEigVects = self.__FindResonance( get_N() )
+        self.resWLs, self.resEigVals, self.resEigVects, self.resLosses = self.__FindResonance( get_N() )
         
         #return self.eigenvalues
     #end calc()
@@ -235,7 +235,7 @@ class Cavity(object):
     
     
     def __ploteigs(self, ):
-        '''DECPRECATED: Cavity.ploteigs() is replaced by `Cavity.mode('all').plot()`
+        '''DECPRECATED: Cavity.ploteigs() is replaced by `Cavity.mode('all').plot()`, so the code is now in the __CavityMode.py module
         
         Plot the Eigenvalues for all modes at each wavelength.  
         
@@ -384,7 +384,7 @@ class Cavity(object):
                 so len( CavityObj.eigenvalues ) == NumModes = pyFIMM.get_N()
         
         eigenvects : numpy array
-            The calculated eigenvectors - amplitude coefficient for each calc'd mode in the central section to achieve the above eigenvalues.  Similar format as eigenvects.  These can be launched via `DeviceObj.set_input()`.
+            The calculated eigenvectors - amplitude/phase coefficients for each calc'd mode in the central section to achieve the above eigenvalues.  Similar format as eigenvects.  These can be launched via `DeviceObj.set_input()`.
         '''
         import sys  # for progress bar
         nWLs = len(scan_wavelengths)    # Number of WLs.
@@ -430,7 +430,6 @@ class Cavity(object):
         if (Nguided==0):
             Nguided=N
 
-        # we will display all the modes, ranked by eigenvalue
         Ndisplay = Nguided   # we need to display all the modes
         labels = "lambda "
         for i in range(0,Ndisplay,1):
@@ -439,6 +438,7 @@ class Cavity(object):
 
 
         # mode 1: scan wavelength <-- This is the only mode this script currently runs in
+        # we will display all the modes, ranked by eigenvalue
 
         EigVect = []        ## To save the EigenVectors vs. wavelength
         EigVal = []
@@ -468,15 +468,15 @@ class Cavity(object):
             SMAT = []
             for i in range(1,N+1,1):
                 ''' Get Left-to-Left (reflecting) scattering matrix for Right-hand-side of cavity, for each WG mode.'''
-                SMAT.append(fimm.Exec("fpRHS.cdev.smat.ll["+str(i)+"]"))
+                SMAT.append(   fimm.Exec("fpRHS.cdev.smat.ll["+str(i)+"]")   )
             for i in range(1,N+1,1):
                 for k in range(1,N+1,1):
-                    RRHS[i-1][k-1]=SMAT[i-1][k] # the index "k" is due to the fact that the first element of each line is "None"
+                    RRHS[i-1][k-1] = SMAT[i-1][k] # the index "k" is due to the fact that the first element of each line is "None"
             #print "RRHS:" # temp
             #print RRHS # temp
             
             
-            #self.S_ll = RRHS # store the left-to-left scattering matrix
+            self.S_ll = RRHS # store the left-to-left scattering matrix
             
             
             
@@ -496,13 +496,13 @@ class Cavity(object):
             SMAT = []
             for i in range(1,N+1,1):
                 '''Get Right-to-Right (reflecting) scattering matrix for Left-hand-side of cavity, for each WG mode.'''
-                SMAT.append(fimm.Exec("fpLHS.cdev.smat.rr["+str(i)+"]"))
+                SMAT.append(   fimm.Exec("fpLHS.cdev.smat.rr["+str(i)+"]")   )
             for i in range(1,N+1,1):
                 for k in range(1,N+1,1):
-                    RLHS[i-1][k-1]=SMAT[i-1][k] # the index "k" is due to the fact that the first element of each line is "None"
+                    RLHS[i-1][k-1] = SMAT[i-1][k] # the index "k" is due to the fact that the first element of each line is "None"
             
             
-            #self.S_rr = RLHS    # store the right-to-right scattering matrix
+            self.S_rr = RLHS    # store the right-to-right scattering matrix
             
             
             
@@ -510,7 +510,7 @@ class Cavity(object):
             R2 = np.dot(RRHS,RLHS)
             # optional, if Nguided < N: truncate the matrix to the guided modes
             if Nguided < N:
-                R2guided=np.zeros([Nguided,Nguided],dtype=complex)
+                R2guided = np.zeros([Nguided,Nguided],dtype=complex)
                 for i in range(0,Nguided,1):
                     for k in range(0,Nguided,1):
                         R2guided[i][k] = R2[i][k]
@@ -608,8 +608,14 @@ class Cavity(object):
     def __FindResonance(self, nummodes):
         '''Locate the wavelengths where the round-trip phase is zero (imaginary part of Eigenvalue = 0) & Eigenvalue (related to cavity loss) is positive (not lossy).
         
-        From Vincent @ PhotonDesign:
+        From Vincent Brulis @ PhotonDesign:
         You can detect the resonances by identifying the wavelengths for which the imaginary part of the eigenvalue (round-trip phase) is zero and the real part is positive (the higher the real part, the less lossy the resonance).  The round-trip loss (i.e. the threshold gain) for a given resonance can be obtained from 10*log(real^2).
+
+        Returns
+        -------
+        resWL, resEigVals, resEigVects, loss : lists
+            List of wavelengths, eigenvalues, eigenvectors and round-trip losses for each mode.  List index corresponds to each mode, and will contain `None` if no cavity resonance was found for that mode.
+
         '''
         
         #modenum = self.modenum
@@ -619,6 +625,7 @@ class Cavity(object):
         resWL = []
         resEigVals = []
         resEigVects = []
+        loss = []
         
         for modenum in range(nummodes):
             Eigs_r = self.eigenvalues[:,modenum].real
@@ -633,7 +640,7 @@ class Cavity(object):
                     
                     if Eigs_r[i]>0 or Eigs_r[i+1]>0:
                         '''If real part is positive.  
-                            Choose the one with minimum imaginary part.'''
+                            Choose the point with minimum imaginary part.'''
                         if abs( Eigs_i[i] )  <  abs( Eigs_i[i+1] ):
                             I0.append( i )
                         else:
@@ -651,9 +658,10 @@ class Cavity(object):
                 resWL.append( WLs[I0] )     # save all resonance wavelengths for this mode
                 resEigVals.append( self.eigenvalues[I0,modenum] )   # save all resonance EigVals for this mode
                 resEigVects.append( self.eigenvectors[I0,modenum] )   # save all resonance EigVects for this mode
+            loss = [   10*np.log(np.real(r)**2)  for  r in resEigVals   ]
         #end for(modenum)
         
-        return (resWL, resEigVals, resEigVects)
+        return (resWL, resEigVals, resEigVects, loss)
             
     #end __FindResonance
     

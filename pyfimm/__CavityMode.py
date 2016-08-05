@@ -435,9 +435,9 @@ class CavityMode(object):
                 WLs = self.wavelengths[num]
         
                 #l1 = []; l2 = []; leg1 = []; leg2=[]
-                l1.append(  ax1.plot(WLs, EigsArray.real, '-x', label="%i: Real"%self.modenum[num] )   )
+                l1.extend(  ax1.plot(WLs, EigsArray.real, '-x', label="%i: Real"%self.modenum[num] )   )
                 #leg1.append("Real")
-                l2.append(  ax1.plot(WLs, EigsArray.imag, '-+', label="%i: Imag"%self.modenum[num] )    )
+                l2.extend(  ax1.plot(WLs, EigsArray.imag, '-+', label="%i: Imag"%self.modenum[num], color=l1[-1].get_color() )    )
                 #leg2.append("Imaginary")
         
                 #ax1.plot(WLs, EigsArray[:,0].real, label="Mode "+str(i)+": real")
