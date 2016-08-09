@@ -385,11 +385,18 @@ class Cavity(object):
         
         eigenvects : numpy array
             The calculated eigenvectors - amplitude/phase coefficients for each calc'd mode in the central section to achieve the above eigenvalues.  Similar format as eigenvects.  These can be launched via `DeviceObj.set_input()`.
+
+        Adds the following attributes to the Cavity object:
+        S_RHS_ll, S_LHS,rr: lists
+            Scattering matrices as viewed from teh cavity split, for the RHS reflection (ll) and LHS reflection (rr).
+
+        S_RT : list
+            Scattering matrix for the round-trip, which is simply the dot-product of S_RHS_ll & S_LHS_rr.
         '''
         import sys  # for progress bar
         nWLs = len(scan_wavelengths)    # Number of WLs.
         
-        Nguided=0 #dimension of the truncated eigenmatrix, should be set to number of guided modes, please set to 0 to solve the eigenproblem for all the modes
+        #Nguided=0 #dimension of the truncated eigenmatrix, should be set to number of guided modes, please set to 0 to solve the eigenproblem for all the modes
         #OverlapThreshold = 0.95 # if the overlap between the eigenvector and the mode is above this threshold, we will consider them identical
         
         self.__FPList = []
@@ -427,10 +434,15 @@ class Cavity(object):
 
         #if DEBUG(): print "CMC(): N={}".format(N)
 
+        """
         if (Nguided==0):
+            '''Hard-coded so Nguided=0'''
             Nguided=N
+        """
 
-        Ndisplay = Nguided   # we need to display all the modes
+        # for printing our the eigenvectros/values:
+        Ndisplay = N   # we want to display all the modes
+
         labels = "lambda "
         for i in range(0,Ndisplay,1):
             labels = labels + "real_mode" + str(i+1) + " imag_mode" + str(i+1) + " "
@@ -438,7 +450,7 @@ class Cavity(object):
 
 
         # mode 1: scan wavelength <-- This is the only mode this script currently runs in
-        # we will display all the modes, ranked by eigenvalue
+        # we will display all the modes, ranked by waveguide mode 
 
         EigVect = []        ## To save the EigenVectors vs. wavelength
         EigVal = []
@@ -476,7 +488,7 @@ class Cavity(object):
             #print RRHS # temp
             
             
-            self.S_ll = RRHS # store the left-to-left scattering matrix
+            self.S_RHS_ll = RRHS # store the left-to-left scattering matrix
             
             
             
@@ -502,27 +514,30 @@ class Cavity(object):
                     RLHS[i-1][k-1] = SMAT[i-1][k] # the index "k" is due to the fact that the first element of each line is "None"
             
             
-            self.S_rr = RLHS    # store the right-to-right scattering matrix
+            self.S_LHS_rr = RLHS    # store the right-to-right scattering matrix
             
             
             
             ''' Calculate the round-trip matrix R2, by multiplying reflecting Smat's of each side of cavity.     '''
-            R2 = np.dot(RRHS,RLHS)
-            # optional, if Nguided < N: truncate the matrix to the guided modes
+            R2 = np.dot(RRHS,RLHS)  # combined scattering matrix for cavity round-trip
+            self.S_RT = R2  # round-trip scattering matrix
+
+            '''
+            # optional, if Nguided < N: truncate the matrix to the guided modes.  Nguided = N, numModes (hard-coded)
             if Nguided < N:
                 R2guided = np.zeros([Nguided,Nguided],dtype=complex)
                 for i in range(0,Nguided,1):
                     for k in range(0,Nguided,1):
                         R2guided[i][k] = R2[i][k]
             else:
-                R2guided=R2
-            
+                R2guided=R2     # only this clause runs
+            '''
             
             
             # solve eigenproblem
-            Eig = np.linalg.eig(R2guided) # returned in format: (array([e1, e2]), array([v1, v2])
-            # eigenvalue (roundtrip field's interference magnitude & phase) is in Eig[0]
-            # eigenvector (coefficient of each launched mode to get this eigenvalue) is in Eig[1]
+            Eig = np.linalg.eig(R2) # returned in format: (array([e1, e2]), array([v1, v2])
+            # eigenvector (coefficient of each WG mode to produce scalar transformation) is in Eig[1]
+            # eigenvalue (amplitude & phase applied to EigVect upon roundtrip) is in Eig[0]
             
             '''
             Eig_reorg = [] # we want to achieve an easier format: ([e1,v1],[e2,v2])
