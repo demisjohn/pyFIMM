@@ -436,8 +436,9 @@ class CavityMode(object):
         
                 #l1 = []; l2 = []; leg1 = []; leg2=[]
                 l1.extend(  ax1.plot(WLs, EigsArray.real, '-x', label="%i: Real"%self.modenum[num] )   )
+                curr_color = l1[-1].get_color()     # color for this mode, as selected my MPL
                 #leg1.append("Real")
-                l2.extend(  ax1.plot(WLs, EigsArray.imag, '-+', label="%i: Imag"%self.modenum[num], color=l1[-1].get_color() )    )
+                l2.extend(  ax1.plot(WLs, EigsArray.imag, '-+', label="%i: Imag"%self.modenum[num], color=curr_color )    )
                 #leg2.append("Imaginary")
         
                 #ax1.plot(WLs, EigsArray[:,0].real, label="Mode "+str(i)+": real")
@@ -452,9 +453,9 @@ class CavityMode(object):
                     for ii, resWL in enumerate( self.__resonance_wavelength[num] ):
                         if ii==0:
                             '''Only add label once'''
-                            vlines.append( ax1.vlines(resWL, ymin, ymax, linestyles='dashed', colors='g', label="%i: Resonance"%self.modenum[num] )  )
+                            vlines.append( ax1.vlines(resWL, ymin, ymax, linestyles='dashed', colors=curr_color, label="%i: Resonance"%self.modenum[num] )  )
                         else:
-                            vlines.append( ax1.vlines(resWL, ymin, ymax, linestyles='dashed', colors='g')  )
+                            vlines.append( ax1.vlines(resWL, ymin, ymax, linestyles='dashed', colors=curr_color)  )
                     #end for(resWL)
                 #end if(resonance)
                 vlines_out.append(vlines)

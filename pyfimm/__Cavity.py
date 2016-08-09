@@ -415,10 +415,10 @@ class Cavity(object):
         
         # At this stage we will retrieve the number of modes in the central section
 
-        N=fimm.Exec("fpRHS.cdev.eltlist[1].mlp.maxnmodes")
+        N=fimm.Exec("fpRHS.cdev.eltlist[1].mlp.maxnmodes")  # could replace with `self.RHS.element...`
         while 1:
             try:
-                N = int(N)
+                N = int(N)  # check if numerical value returned
                 
                 break
             except ValueError:
