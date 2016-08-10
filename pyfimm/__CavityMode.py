@@ -127,6 +127,7 @@ class CavityMode(object):
         self.__resonance_wavelength = []
         self.__resonance_eigenvalue = []
         self.__resonance_eigenvector = []
+        self.__resonance_loss = []
         
         for num in self.modenum:
             '''eigenvalues[i][ corresponds to the modenumber modenum[i]'''
@@ -143,6 +144,7 @@ class CavityMode(object):
             self.__resonance_wavelength.append( CavObj.resWLs[num] )
             self.__resonance_eigenvalue.append( CavObj.resEigVals[num] )
             self.__resonance_eigenvector.append( CavObj.resEigVects[num] )
+            self.__resonance_loss.append( CavObj.resLosses[num] )
     #end __init__
     
     
@@ -768,11 +770,57 @@ class CavityMode(object):
     get_resonance_eigenvector = get_resonance_eigenvectors
     
     
-    def get_cavity_loss(self, ):
-        '''Return the cavity loss (equivalent to threshold gain) for this mode.
-        The round-trip loss (i.e. the threshold gain) for a given resonance can be obtained from 10*log(real^2).'''
-        print "get_cavity_loss(): WARNING: Not implemented."
-        return -1
+    def get_cavity_losses_frac(self, ):
+        '''Return the cavity loss (equivalent to threshold gain) for this mode, as a fractional power of the input mode (eigenvector).
+        Eg. a value of 0.4 means that 40% of the power in this mode was lost.
+        '''
+        #print "get_cavity_loss(): WARNING: Not implemented."
+        out = []
+        for num, M in enumerate(self.modenum):
+            val = self.__resonance_loss[num]**2     # convert amplitude to power
+            out.append( val )
+        return out
+    # alias to same function:
+    get_cavity_loss_frac = get_cavity_losses_frac
+
+
+    def get_cavity_losses_dB(self, ):
+        '''Return the cavity loss (equivalent to threshold gain) for this mode, as a fractional power of the input mode (eigenvector) in dB.
+        Eg. a value of +3.0 means that 3dB of the power in this mode was lost.
+        '''
+        #print "get_cavity_loss(): WARNING: Not implemented."
+        out = []
+        for L in self.get_cavity_losses_frac():
+            val = -10*np.log10(  1.0 - L  )     # convert fractional power to dB
+            out.append( val )
+        return out
+    # alias to same function:
+    get_cavity_loss_dB = get_cavity_losses_dB
     
     
-    
+    def get_cavity_losses_m(self, ):
+        '''Return the cavity loss (equivalent to threshold gain) for this mode, as meter^-1.
+        Eg. a value of 0.4 means that the cavity loss for this cavity mode is 0.4m^-1.
+        '''
+        # alpha(cm^-1) = -ln(lambda)/(2*L[cm])
+        out = []
+        for num, M in enumerate(self.modenum):
+            val = -1*np.log( (1.0-self.__resonance_loss[num]) ) / (  2* self.Cavity.get_length()  )    # length is in meters
+            out.append( val )
+        return out
+    # alias to same function:
+    get_cavity_loss_m = get_cavity_losses_m
+
+
+    def get_cavity_losses_cm(self, ):
+        '''Return the cavity loss (equivalent to threshold gain) for this mode, as centimeter^-1.
+        Eg. a value of 0.4 means that the cavity loss for this cavity mode is 0.4 cm^-1.
+        '''
+        out = []
+        for L in self.get_cavity_losses_m():
+            val = L / 100    # convert from m^-1 --> cm^-1
+            out.append( val )
+        return out
+    # alias to same function:
+    get_cavity_loss_cm = get_cavity_losses_cm
+
