@@ -1223,7 +1223,7 @@ class Device(Node):
 ####                                                        ####
 ################################################################
     
-    def buildNode(self, name=None, parent=None, overwrite=False, warn=False):
+
         '''Build the Fimmwave node of this Device.
         
         Parameters
@@ -1242,7 +1242,7 @@ class Device(Node):
         
         To Do:
         ------
-        Add optional argument `buildNode = True`, which will build all passed WG objects while adding them to the Device.
+        Add optional argument `build_elements = True`, which will build all passed WG objects while adding them to the Device.
             
         '''
         if self.built: raise UserWarning(  'Device "%s".buildNode(): Device is already built in FimmWave!  Aborting.'%(self.name)  ) 
@@ -1307,7 +1307,7 @@ class Device(Node):
                 fpString += self.nodestring + ".cdev.eltlist["+str(elnum)+"].length="+str(self.lengths[ii]) + "  \n"
             
             elif isinstance( el, Lens ):
-                '''The Lens object will be a Waveguide Lens type of element.'''
+                '''The Lens object will be a Waveguide Lens element.'''
                 if DEBUG(): print "Device.buildNode():  type = Lens"
                 fpString +=   self.__BuildLensElement( el, elnum )
                 el.built = True
@@ -1322,7 +1322,11 @@ class Device(Node):
                         print self.name + ".buildNode(): Attempting to build the unbuilt element:", el.name
                         el.buildNode()  # tell the element to build itself
                     except:
-                        errstr = "Error while building Device Node `"+self.name+"`: \nA constituent waveguide could not be built. Perhaps try building all waveguide nodes via `WGobj.buildNode()` before building the Device."
+                        try:
+                            elname = el.name
+                        except AttributeError:
+                            elname=el.__repr__()
+                        errstr = "Error while building Device Node `"+self.name+"`: \nA constituent element `" +elname+ "` could not be built. Perhaps try building all waveguide nodes via `WGobj.buildNode()` before building the Device."
                         raise RuntimeError(errstr)
                 
                 if DEBUG(): print "Device.buildNode(): %i: type(el)=%s, name=%s"%(ii, str(type(el)), el.name)
