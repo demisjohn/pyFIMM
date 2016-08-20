@@ -141,13 +141,16 @@ class Cavity(object):
     #end __str__
     
     
-    def buildNode(self, parent=None, overwrite=False, warn=True):
+    def buildNode(self, parent=None, overwrite=False, warn=True, build=True):
         '''If either of the two constituent Devices passed haven't been built, they will now have their nodes built.
         
         Parameters
         ----------
         parent : Node object, optional
             Provide the parent (Project/Device) Node object for this waveguide.
+
+        build : { True | False }, optional
+            If either of the constituent Devices aren't built, attempt to call their `buildNode` method.
         
         overwrite : { True | False }, optional
             Overwrite existing Device node of same name?  Defaults to False, which will rename the node if it has the same name as an existing node.

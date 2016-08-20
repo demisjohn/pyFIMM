@@ -1223,6 +1223,7 @@ class Device(Node):
 ####                                                        ####
 ################################################################
     
+    def buildNode(self, name=None, parent=None, overwrite=False, warn=False):
 
         '''Build the Fimmwave node of this Device.
         
