@@ -646,7 +646,7 @@ class Cavity(object):
         resWL = []
         resEigVals = []
         resEigVects = []
-        loss = []
+        losses = []
         
         for modenum in range(nummodes):
             Eigs_r = self.eigenvalues[:,modenum].real
@@ -672,23 +672,34 @@ class Cavity(object):
             
             if len(I0) == 0:
                 ''' if no resonance found'''
+                if DEBUG(): print( "_findres(): Mode=", modenum, " // No Resonance" )
                 resWL.append( None )
                 resEigVals.append( None )
                 resEigVects.append( None )
-                loss.append( None )
+                losses.append( None )
             else:
+                if DEBUG(): print( "_findres(): Mode=", modenum, " // I0=", I0 )
                 resWL.append( WLs[I0] )     # save all resonance wavelengths for this mode
                 resEigVals.append( self.eigenvalues[I0,modenum] )   # save all resonance EigVals for this mode
                 resEigVects.append( self.eigenvectors[I0,modenum] )   # save all resonance EigVects for this mode
+
+
                 # normalize the eigenvalue, to the magnitude of the eigenvectors:
                 loss=[]
-                for ii in range(  len(resEigVals)  ):
-                    MagEigVect = [  np.sum(  np.abs( rVect )  )   for   rVect in resEigVects[ii]  ]    # total magnitude of the eigenvector
-                    eVal_norm = np.array(resEigVals[ii]) / np.array(MagEigVect)     # normalized eigenvalues
-                    loss.append(   1.0 - np.real(eVal_norm)   )  # fractional loss for input mode amplitude
+                if DEBUG(): print("_findres(): len(resEigVals)=", len(resEigVals[-1]))
+                for ii in range(  len(resEigVals[-1])  ):
+                    '''in case multiple resonances for this mode'''
+                    if DEBUG(): print( "_findres(): rVect[", ii, "]=", resEigVects[-1][ii])
+                    if resEigVects[-1][ii] != None:
+                        MagEigVect = [  np.sum(  np.abs( rVect )  )   for   rVect in resEigVects[-1][ii]  ]    # total magnitude of the eigenvector
+                        eVal_norm = np.array(resEigVals[-1][ii]) / np.array(MagEigVect)     # normalized eigenvalues
+                        loss.append(   1.0 - np.real(eVal_norm)   )  # fractional loss for input mode amplitude
+                    else: 
+                        loss.append( None ) 
+                losses.append( np.array(loss) )
         #end for(modenum)
         
-        return (resWL, resEigVals, resEigVects, loss)
+        return (resWL, resEigVals, resEigVects, losses)
             
     #end __FindResonance
     
