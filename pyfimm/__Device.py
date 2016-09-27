@@ -118,6 +118,7 @@ class Device(Node):
         self.__inc_field = None     # incident/input field - DEPRECATED
         self.elementpos = []    # positions in eltlist[] of each element/joint
         self.jointpos = []
+        self.matDB = None       # material database path
 
         if len(args) == 1:
             self.lengths = []
@@ -215,6 +216,43 @@ class Device(Node):
         self.calculated=True
     #end calc()
     
+    def set_material_database(self, path):
+        '''Set the path to the material database (*.mat) file.  Only needed if you are defining materials using this database ('mat'/material type waveguides instead of 'rix'/refractive index).  This sets a materials file that will be used only by this Device.  
+        Although waveguide nodes can specify their own (different) materials files, it is recommended that a global file be used instead since FimmProp Devices do not accept multiple materials files (to avoid confusion and identically-named materials from different files).  The single global file can be set to `include` any other materials files.
+        
+        Parameters
+        ----------
+        path : string
+            Absolute or relative path to the material database file.  `path` will be automatically converted to an absolute path, as a workaround to a FimmProp Device Node bug that causes it to only accept absolute paths.
+            '''
+        import os
+        path = os.path.abspath(path)    # convert to absolute path
+        if os.path.isfile(path):
+            self.matDB = str(path)
+            fimm.Exec(   self.nodestring + '.setmaterbase(%s)'%(self.matDB)   )
+        else:
+            ErrStr = "Material database file does not exist at the specified path `%s`" %(path)
+            raise IOError(ErrStr)
+        if DEBUG(): print "Device '%s'.matDB = "%(self.name), self.matDB
+
+    def get_material_database(self,):
+        '''Get path to this Device's material database file.
+        
+        Returns
+        -------
+        path : string
+            Absolute path to the material database file used by this node.
+            '''
+        try:
+            self.matDB
+        except:
+            if DEBUG(): print "unset global_matDB --> None"
+            self.matDB = fimm.Exec(   self.nodestring + '.materbasename()'   )
+        return self.matDB
+
+
+
+
     
     def set_joint_type(self, jtype, jointoptions=None):
         '''Set the joint type to use between each element of this Device.  This option, if set, overrides each element's own options for the joint type (set by `element.set_joint_type()`).
