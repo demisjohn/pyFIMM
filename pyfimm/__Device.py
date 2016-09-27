@@ -6,7 +6,7 @@ from __globals import *         # import global vars & FimmWave connection objec
 from __pyfimm import *      # import the main module (should already be imported)
 #  NOTE: shouldn't have to duplicate the entire pyfimm file here!  Should just import the funcs we need...
 
-from __pyfimm import get_N
+from __pyfimm import get_N  # deprecated - use self.get_N() for device-specific N()
 
 
 from __Waveguide import Waveguide   # rectangular waveguide class
@@ -251,9 +251,27 @@ class Device(Node):
         return self.matDB
 
 
+    def get_N(self,):
+        '''Get max number of modes solved for in this Device.
 
+        Returns
+        -------
+        N : int
+            Number of modes, set as 'maxnmodes' in MOLAB parameters.
+        '''
+        return fimm.Exec( self.nodestring + ".mlp.maxnmodes")
 
+    def set_N(self, N):
+        '''Set max number of modes to solve for in this Device.
+
+        Parameters
+        ----------
+        N : int
+            Max number of modes to solve for, set by `maxnmodes` in MOLAB parameters.
+        '''
+        fimm.Exec(   self.nodestring + ".mlp.maxnmodes " + str(int(N))   )
     
+
     def set_joint_type(self, jtype, jointoptions=None):
         '''Set the joint type to use between each element of this Device.  This option, if set, overrides each element's own options for the joint type (set by `element.set_joint_type()`).
         
@@ -427,7 +445,7 @@ class Device(Node):
             # assume an array-like was passed, so set the input as a vector            
             ampString = str(mode_vector[0].real)+","+str(mode_vector[0].imag)
             
-            for ii in range( 1, get_N() ):
+            for ii in range( 1, self.get_N() ):
                 ampString += ","+str(mode_vector[ii].real)+","+str(mode_vector[ii].imag)
             
             fpString = self.nodestring + "." + sidestr + "input.inputtype=2" + "\n"     # vector input
@@ -608,7 +626,7 @@ class Device(Node):
         component = component.strip().lower()
         
         
-        modelist = range(0, get_N() )     # list like [0,1,2,3]
+        modelist = range(0, self.get_N() )     # list like [0,1,2,3]
         
         side = side.lower().strip()
         
