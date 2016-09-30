@@ -3,9 +3,10 @@ pyFIMM - main module
 
 See help on the main module, `help(pyFIMM)`, for usage info.
 
-This file contains the higher-level classes, such as Project, Node, Material, Layer, Slice and Section.
+In this file are the pyFIMM global parameters - set_wavelength, set_N etc.
+See __Classes.py for the higher-level classes, such as Project, Node, Material, Layer, Slice and Section.
 Waveguide, Circ and Device classes/functions are in their respective separate files.
-Also in this file are the pyFIMM global parameters - set_wavelength, set_N etc.
+
 '''
 
 '''See file __Waveguide.py for the Waveguide class & rectangular WG funcs.

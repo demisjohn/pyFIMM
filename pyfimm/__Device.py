@@ -176,7 +176,10 @@ class Device(Node):
     
     def get_length(self):
         '''Return summed lengths of contained elements - total length of this Device.'''
-        return np.sum(self.lengths)
+        try:
+            return np.sum(self.lengths)
+        except TypeError:
+            raise ValueError("Could not determine length of some Device elements. Possibly due to ELement referencing another node.")
     
     def set_length(self,element_num,length):
         '''Set the length of a particular element in the Device.  (Elements are counted from the left-most side first, starting at #1.)  
@@ -1956,24 +1959,42 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
         
         elif objtype.lower().endswith('section') or objtype.strip() == 'FPtaper' or objtype.strip() == 'FPfspaceJoint' or objtype.strip() == 'FPbend':
             ''' Regular Section with a `*.length` attribute, including regular WG/Planar Sections'''
+            
             if objtype == 'FPRefSection':
+                NodeRef = False
                 ''' This element references another element:
                 resolve the reference & get the properties'''
-                refpos = int( fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].getrefid()"%(elnum)  )  )
-                if DEBUG(): print "Element %i is reference --> Element %i."%(elnum, refpos)
-                dev.elementpos.append( refpos )     # Append the position of the Original!
-                elnum = refpos      # point to the original element
+                refpos = fimm.Exec(  dev.nodestring + ".cdev.eltlist[%i].getrefid()"%(elnum)  ) 
+                try:
+                    refpos = int( refpos )
+                    '''element is a reference to another element in this same device'''
+                    if DEBUG(): print "Element %i is reference --> Element %i."%(elnum, refpos)
+                    elnum = refpos      # point to the original element
+                    dev.elementpos.append(elnum)
+                    dev.lengths.append(     dev.parent.checkvar(  dev.Exec( "cdev.eltlist[%i].length"%(elnum) )  )    )
+                    if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
+                except ValueError:
+                    '''element references another node entirely - refpos is probably a string'''
+                    NodeRef=True
+                    elnum = -1      # -1 indicates element is ref to another node
+
+                    TempDev = "Device_%i" %(  get_next_refnum()  )  # generate dev reference name
+                    fimm.Exec(   'Ref& ' + TempDev + ' = ' + dev.parent.nodestring + '.findnode("' + TempDev + '%s")'   )
+                    dev.elementpos.append( TempDev )     # str indicates element is another node
+                    
+                    # use the above to locate eth device and get the length!
+                    dev.lengths.append(  None  )  #  <--- should resolve the reference and get the length! importnat for plotting!
+
                 #dev.lengths.append(    dev.parent.checkvar(   dev.Exec( "cdev.eltlist[%i].length"%(refpos) )   )    )
                 #dev.lengths.append(    dev.Exec( "cdev.eltlist[%i].length"%(refpos) )    )
                 #if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
-            #end if(ReferenceSection)
-            
-            
-            if DEBUG(): print "Element %i is Section of type: %s"%(elnum, objtype)
-            dev.elementpos.append(elnum)
-            dev.lengths.append(     dev.parent.checkvar(  dev.Exec( "cdev.eltlist[%i].length"%(elnum) )  )    )
-            if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
-            
+            else:
+                
+                if DEBUG(): print "Element %i is Section of type: %s"%(elnum, objtype)
+                dev.elementpos.append(elnum)
+                dev.lengths.append(     dev.parent.checkvar(  dev.Exec( "cdev.eltlist[%i].length"%(elnum) )  )    )
+                if DEBUG(): print "Element %i: Length = "%(elnum)  , dev.lengths[-1]
+            #end if(FPRefSection)
         else:
             '''Eg. Lens =  FPWGLens; can't get the length simply'''
             print "WARNING: Element %i: "%(elnum) + "Unsupported Element Type:", objtype
