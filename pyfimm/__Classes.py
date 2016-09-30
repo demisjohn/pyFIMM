@@ -772,6 +772,8 @@ class Variables(Node):
         '''
         self.Exec( 'addvariable("%s")'%(varname)  )
         self.set_var( varname, value )
+        if DEBUG(): print( "VarNode '%s': "%self.name + "Added variable %s"%varname )
+
     
     def set_var(self, varname, value):
         '''Set the value of a fimmwave variable.
@@ -782,6 +784,7 @@ class Variables(Node):
             Set the variable value.
             '''
         self.Exec(  'setvariable("%s","%s")'%(varname, value)  )
+        if DEBUG(): print( "VarNode '%s': "%self.name + "Set variable %s = %s"%(varname, value) )
     
     def get_var(self, varname):
         '''Return the value of a single variable as evaluated by FimmWave.  
