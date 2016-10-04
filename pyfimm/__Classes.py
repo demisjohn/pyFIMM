@@ -39,11 +39,29 @@ def strip_txt(FimmString):
 # Alias for the same function:
 strip_text = striptxt = strip_txt
 
-def strip_array(FimmArray):
-    '''Remove EOL & 'None' elements of a returned list or array.'''
+def strip_array_old(FimmArray):
+    '''DEPRECATED: Remove EOL & 'None' elements of a returned list or array.
+    This version only corrects a 1-D array.'''
     if  isinstance( FimmArray,  list ):
         if  FimmArray[0]  is None:  FimmArray = FimmArray[1:]     # omit 1st 'None' element
     return FimmArray
+
+def strip_array( FimmArray ):
+    '''Remove erroneous 'None' elements of a returned list or array.'''
+    if DEBUG(): print "strip_array_test(): Type=", type(FimmArray)
+    if  isinstance( FimmArray,  list ):
+        if DEBUG(): print(  "\tOrig = "+str(FimmArray)  )
+        if  FimmArray[0]  is None:  
+            if DEBUG(): print("\tFimmArray[0]==None; stripping...")
+            FimmArray = FimmArray[1:]     # omit 1st 'None' element
+            if DEBUG(): print( "\t"+str(FimmArray) )
+        for row in range(len(FimmArray)):
+            if FimmArray[row][0] is None: 
+                if DEBUG(): print( "\tFimmArray[%i][0]==None; stripping..."%(row) )
+                FimmArray[row] = FimmArray[row][1:]
+                if DEBUG(): print( "\t"+str(FimmArray[row]) )
+    return FimmArray
+
 
 def eval_string(fpStr):
     '''Check if a string is numeric, and if so, return the numeric value (as int, float etc.).  If the string is not numeric, the original string is returned.

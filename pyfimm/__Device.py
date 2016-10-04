@@ -885,48 +885,69 @@ class Device(Node):
     
     ###### Return Scattering Matrix ######
     
-    def R12(self,out,inc):
-        '''Return reflection at Left port.'''
-        prj_num = self.parent.num
-        node_num = self.num
-        return fimm.Exec(self.nodestring + ".cdev.smat.ll[{"+str(out+1)+"}][{"+str(inc+1)+"}]")
+    def R12(self):
+        '''Return scattering matrix for reflection at Left port.
+        The scattering matrix shows how the device converts one mode into a superposition of supported modes, with the complex coefficients describing the superposition.
+
+        Returns
+        -------
+        S[outputmode][inputmode]: numpy ndarray
+            NxN Array, where N is number of modes (see `obj.get_N()`).
+            '''
+        return np.array( strip_array(  fimm.Exec(self.nodestring + ".cdev.smat.ll")  ) )
     
-    def S_ll(self,out,inc):
-        '''Return scattering Matrix Left-to-Left: Alias for R12()'''
-        return R12(self,out=out,inc=inc)
-    
-    
-    def T12(self,out,inc):
-        '''Return transmission from Left to Right.'''
-        prj_num = self.parent.num
-        node_num = self.num
-        return fimm.Exec(self.nodestring + ".cdev.smat.lr[{"+str(out+1)+"}][{"+str(inc+1)+"}]")
-    
-    def S_lr(self,out,inc):
-        '''Return scattering Matrix Left-to-Right: Alias for T12()'''
-        return T12(self,out=out,inc=inc)
+    def S_ll(self):
+        '''Return Scattering Matrix Left-to-Left: Alias for R12().  See `help(R12)` for more info.'''
+        return self.R12()
     
     
-    def R21(self,out,inc):
-        '''Return reflection at Right port.'''
-        prj_num = self.parent.num
-        node_num = self.num
-        return fimm.Exec(self.nodestring + ".cdev.smat.rr[{"+str(out+1)+"}][{"+str(inc+1)+"}]")
+    def T12(self):
+        '''Return transmission scattering matrix from Left to Right.
+        The scattering matrix shows how the device converts one mode into a superposition of supported modes, with the complex coefficients describing the superposition.
+
+        Returns
+        -------
+        S[outputmode][inputmode]: numpy ndarray
+            NxN Array, where N is number of modes (see `obj.get_N()`).'''
+        X = fimm.Exec(self.nodestring + ".cdev.smat.lr")
+        print("X=", X ) 
+        Y =  strip_array_test(  X  ) 
+        print ("Y=", Y)
+        return np.array( Y )
     
-    def S_rr(self,out,inc):
-        '''Return scattering Matrix Right-to-Right: Alias for R21()'''
-        return R21(self,out=out,inc=inc)
+    def S_lr(self):
+        '''Return scattering Matrix Left-to-Right: Alias for T12().  See `help(T12)1 for more info.'''
+        return self.T12()
     
     
-    def T21(self,out,inc):
-        '''Return transmission from Right to Left.'''
-        prj_num = self.parent.num
-        node_num = self.num
-        return fimm.Exec(self.nodestring + ".cdev.smat.rl[{"+str(out+1)+"}][{"+str(inc+1)+"}]")
+    def R21(self):
+        '''Return reflection scattering matrix at Right port.
+        The scattering matrix shows how the device converts one mode into a superposition of supported modes, with the complex coefficients describing the superposition.
+
+        Returns
+        -------
+        S[outputmode][inputmode]: numpy ndarray
+            NxN Array, where N is number of modes (see `obj.get_N()`).'''
+        return np.array( strip_array(  fimm.Exec(self.nodestring + ".cdev.smat.rr")  ) )
     
-    def S_rl(self,out,inc):
-        '''Return scattering Matrix Right-to-Left: Alias for T21()'''
-        return T21(self,out=out,inc=inc)
+    def S_rr(self):
+        '''Return scattering Matrix Right-to-Right: Alias for R21().  See `help(R21)` from more info.'''
+        return self.R21()
+    
+    
+    def T21(self):
+        '''Return transmission scattering matrix from Right to Left.
+        The scattering matrix shows how the device converts one mode into a superposition of supported modes, with the complex coefficients describing the superposition.
+
+        Returns
+        -------
+        S[outputmode][inputmode]: numpy ndarray
+            NxN Array, where N is number of modes (see `obj.get_N()`).'''
+        return np.array( strip_array(  fimm.Exec(self.nodestring + ".cdev.smat.rl")  ) )
+    
+    def S_rl(self):
+        '''Return scattering Matrix Right-to-Left: Alias for T21(). See `help(T21)` for more info.'''
+        return self.T21()
     
     
 
