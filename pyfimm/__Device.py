@@ -2039,72 +2039,6 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
     
     
     return dev
-    
-    ''' Techniques in FimmProp to do the above:
-    Let FimMWave find the node for us:
-    Ref& R = app.subnodes[1].findnode(WG Device) - no quotes, or double-quotes!
-
-    R.objtype
-    FPDeviceNode
-
-    Do need to distinguish the elements,
-        - which are joints (jointpos) and which are elements
-        - in Dev.elements, insert dummy-Section?  When interrogates, returns Warning "Loaded form external file"
-    determine each element's length
-    determine total device length
-    Do NOT look inside each element - obviates ability to make paths etc.
-
-    &Var wg=app.subnodes[1].subnodes[3].cdev.getwg(0)
-
-app.subnodes[1].subnodes[3].cdev.getwg(0)
-app.subnodes[1].subnodes[3].cdev.eltlist
-
-         eltlist[1]     
-         eltlist[2]     
-         eltlist[3]     
-
-app.subnodes[1].subnodes[3].cdev.eltlist[3].length
-    15
-
-app.subnodes[1].subnodes[3].cdev.eltlist[2].length
-    could not find item "app.subnodes[1].subnodes[3].cdev.eltlist[2].length"
-
-app.subnodes[1].subnodes[3].cdev.eltlist[1].length
-    10
-
->>> pf.Exec("app.subnodes[1].subnodes[3].cdev.eltlist")
-[None, 'eltlist[1]', 'eltlist[2]', 'eltlist[3]']
-
-app.subnodes[1].subnodes[3].cdev.eltlist[1].objtype
-    FPWGsection
-
-app.subnodes[1].subnodes[3].cdev.eltlist[2].objtype
-    FPsimpleJoint
-
->>> pf.Exec("app.subnodes[1].subnodes[3].cdev.eltlist[2].objtype")
-'FPsimpleJoint'
-
-
-### For referenced section:
-Device_187734.cdev.eltlist[3].objtype
-    FPRefSection
-
-Device_187734.cdev.eltlist[3].length
-    could not find item "Device_187734.cdev.eltlist[3].length"
-
-Device_187734.cdev.eltlist[3].getrefid()
-    1
-
-###################
-
-    # import into the project:
-    Device_187734.copy()
-
-    NewProj{aka. self}.nodestring + '.paste("%s")'%(Device_187734.name)
-    
-    !!!-->  Update nodenumber of Device & nodestring  (always pasted at end)
-    
-    '''
 
 #end import_device()
 
@@ -2134,3 +2068,6 @@ def import_device(project, fimmpath, name=None, overwrite=False, warn=False ):
     pyFIMM Device object, referencing the fpDevice.
     '''
     return _import_device('device', project, fimmpath, name=name, overwrite=overwrite, warn=warn )
+
+
+
