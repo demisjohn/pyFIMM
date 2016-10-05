@@ -211,11 +211,19 @@ class Device(Node):
             min & max z-coorinates. Defaults to 0-->Device Length (plot entire Device).
         
         '''
-        #prj_num = self.parent.num
-        #node_num = self.num
-        #"app.subnodes[{"+ str(prj_num) +"}].subnodes[{"+ str(node_num) +"}]."
+        
         if not zmax: zmax = self.get_length()
         fimm.Exec(self.nodestring + ".calczfield("+ str(zpoints) +","+ str(zmin) +", "+ str(zmax) +","+ str(xcut) +","+ str(ycut) +",1)"    +"\n")
+
+
+        # other possible functions:
+        #   calcfieldprofile(): FUNCTION (zpos,fieldType[0-total,1-fwd,2-bwd,3-field vecs],refelt[0-wrt cpt,N-wrt elt N],refpt[0-beg elt,1-end elt]): 
+        #   stores field Xsection in fieldprofile. refpt,refelt default to 0,0
+        # fieldprofile
+        #   PDObject field Xsection evaluated by calcfieldprofile
+        #   
+
+
         self.calculated=True
     #end calc()
     
@@ -262,7 +270,7 @@ class Device(Node):
         N : int
             Number of modes, set as 'maxnmodes' in MOLAB parameters.
         '''
-        return fimm.Exec( self.nodestring + ".mlp.maxnmodes")
+        return int(  fimm.Exec( self.nodestring + ".mlp.maxnmodes")  )
 
     def set_N(self, N):
         '''Set max number of modes to solve for in this Device.
@@ -631,6 +639,7 @@ class Device(Node):
         
         modelist = range(0, self.get_N() )     # list like [0,1,2,3]
         
+        sideorig = side
         side = side.lower().strip()
         
         if side == 'left' or side == 'l' or side == 'lhs':
@@ -639,6 +648,9 @@ class Device(Node):
         elif side == 'right' or side == 'r' or side == 'rhs':
             if mode_vector is None:  mode_vector = self.input_field_right
             n = self.elementpos[-1]     # last element
+        else:
+            ErrStr = "Unrecognized option for `side`: %s"%(sideorig)
+            raise ValueError(ErrStr)
         
         '''
         # normalize mode_vector
@@ -647,7 +659,7 @@ class Device(Node):
         '''
         
         # calculate modes of the element:
-        if DEBUG(): print 'Device "%s"' % self.name + '.plot_input_field(): Calculating modes of element %i...' % n
+        if DEBUG(): print 'Device "%s"' % self.name + '.plot_input_field(): Calculating modes of element ' + str(n) + '...'
         fimm.Exec(  self.nodestring + ".cdev.eltlist[%i].wg.evlist.update()" % n  )
         
         modes =  Mode(self, modelist, self.nodestring + ".cdev.eltlist[%i].wg.evlist." % n   )
@@ -910,9 +922,9 @@ class Device(Node):
         S[outputmode][inputmode]: numpy ndarray
             NxN Array, where N is number of modes (see `obj.get_N()`).'''
         X = fimm.Exec(self.nodestring + ".cdev.smat.lr")
-        print("X=", X ) 
-        Y =  strip_array_test(  X  ) 
-        print ("Y=", Y)
+        if DEBUG(): print("X=", X ) 
+        Y =  strip_array(  X  ) 
+        if DEBUG(): print ("Y=", Y)
         return np.array( Y )
     
     def S_lr(self):
@@ -1839,7 +1851,7 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
     If this function is called as a method of a pyFIMM Project object (`ProjectObj.import_device()`) then the target FimmProp Device will be copied into the calling pyFIMM Project's corresponding FimmProp project, and the device returned will point to that.
     To ensure the imported Device can reference the needed Waveguides/Slabs from the original Project, it is easiest if the required waveguide/slab nodes are subnodes of the original device node - they will then be copied automatically into the new Project.  If this is not possible, first use the function `Project.import_Node()` to copy the required FimmProp Nodes into the calling Project.
     
-    import_device() will not load the elements and waveguides used in the Device's construction.  This is to enable the use of the many complex element types available in FimmProp that aren't supported by pyFIMM - for example etch/grow paths, various types of joints etc.  These specialized elements/joints won't be inspected by pyFIMM, but you can still insert your Device into other Devices, launch/retrieve fields etc. via pyFIMM.
+    import_device() will not inspect the elements and waveguides used in the Device's construction.  This is to enable the use of the many complex element types available in FimmProp that aren't supported by pyFIMM - for example etch/grow paths, various types of joints etc.  These specialized elements/joints won't be inspected by pyFIMM, but you can still insert your Device into other Devices, launch/retrieve fields etc. via pyFIMM.
     Device.get_origin() will return 'fimm' for this new Device, indicating that it was constructed in FimmWave and the elements it contains will not correspond to pyFIMM waveguide objects.
 
     
@@ -1876,7 +1888,7 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
         This indicates that this Device was Not constructed by pyFIMM, and so has a slightly lacking set of attributes (detailed further in this section).  A normally-constructed pyFIMM Device has the value 'pyfimm'.
     
     DevObj.num : nonexistent
-        Instead, use the attribute `DevObj.nodestring` to reference the device object in FimmWave.
+        Obsoleted. Instead, use the attribute `DevObj.nodestring` to reference the device object in FimmWave.
 
     DevObj.elements : (empty list)
         To allow for all the various Element construction methods available in FimmWave (eg. etch/grow paths etc.), pyFIMM will not populate the elements list of the imported Device.
@@ -2000,7 +2012,7 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
                     elnum = -1      # -1 indicates element is ref to another node
 
                     TempDev = "Device_%i" %(  get_next_refnum()  )  # generate dev reference name
-                    fimm.Exec(   'Ref& ' + TempDev + ' = ' + dev.parent.nodestring + '.findnode("' + TempDev + '%s")'   )
+                    fimm.Exec(   'Ref& ' + TempDev + ' = ' + dev.parent.nodestring + '.findnode("' + refpos + '")'   )
                     dev.elementpos.append( TempDev )     # str indicates element is another node
                     
                     # use the above to locate eth device and get the length!
