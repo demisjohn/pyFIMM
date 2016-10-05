@@ -906,7 +906,7 @@ class Device(Node):
         S[outputmode][inputmode]: numpy ndarray
             NxN Array, where N is number of modes (see `obj.get_N()`).
             '''
-        return np.array( strip_array(  fimm.Exec(self.nodestring + ".cdev.smat.ll")  ) )
+        return np.array( self.Exec(".cdev.smat.ll")  )
     
     def S_ll(self):
         '''Return Scattering Matrix Left-to-Left: Alias for R12().  See `help(R12)` for more info.'''
@@ -921,11 +921,12 @@ class Device(Node):
         -------
         S[outputmode][inputmode]: numpy ndarray
             NxN Array, where N is number of modes (see `obj.get_N()`).'''
-        X = fimm.Exec(self.nodestring + ".cdev.smat.lr")
-        if DEBUG(): print("X=", X ) 
-        Y =  strip_array(  X  ) 
-        if DEBUG(): print ("Y=", Y)
-        return np.array( Y )
+        #X = fimm.Exec(self.nodestring + ".cdev.smat.lr")
+        #if DEBUG(): print("X=", X ) 
+        #Y =  strip_array(  X  ) 
+        #if DEBUG(): print ("Y=", Y)
+        #return np.array( Y )
+        return np.array(  self.Exec(".cdev.smat.lr")  )
     
     def S_lr(self):
         '''Return scattering Matrix Left-to-Right: Alias for T12().  See `help(T12)1 for more info.'''
@@ -940,7 +941,7 @@ class Device(Node):
         -------
         S[outputmode][inputmode]: numpy ndarray
             NxN Array, where N is number of modes (see `obj.get_N()`).'''
-        return np.array( strip_array(  fimm.Exec(self.nodestring + ".cdev.smat.rr")  ) )
+        return np.array( self.Exec(".cdev.smat.rr") )
     
     def S_rr(self):
         '''Return scattering Matrix Right-to-Right: Alias for R21().  See `help(R21)` from more info.'''
@@ -955,7 +956,7 @@ class Device(Node):
         -------
         S[outputmode][inputmode]: numpy ndarray
             NxN Array, where N is number of modes (see `obj.get_N()`).'''
-        return np.array( strip_array(  fimm.Exec(self.nodestring + ".cdev.smat.rl")  ) )
+        return np.array( self.Exec(".cdev.smat.rl") )
     
     def S_rl(self):
         '''Return scattering Matrix Right-to-Left: Alias for T21(). See `help(T21)` for more info.'''
@@ -1895,7 +1896,10 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
         However, `.elementpos` and `.jointpos` will be populated properly so that you can differentiate between joints and waveguide elements.  Note that Free-Space joints will be added to `*.elementpos` despite being in the "joints" section of the FimmProp GUI, because they have a length and are thus more appropriately treated as finite-length elements.
     
     DevObj.elementpos : list
-        List of element positions (used in FimmProp's `DevNode.cdev.eltlist[%i]`) for referencing a particular element.  Elements that are references will have an entry corresponding to the original element.
+        List of element positions (used in FimmProp's `DevNode.cdev.eltlist[%i]`) for referencing a particular element.  Elements that are references will have an entry corresponding to the original element, which might be a string for Nodes inserted into the device as references.
+
+    In-progress: DevObj.referencepos : list
+        For referenced elements, contains either the location of the original element, or path to the original Node.
         
     DevObj.lengths : list
         The length, in microns, of each element that can have a length (these elements are referenced in `DevObj.elementpos`).  Unsupported elements, such as the WGLens (which don't have a simple calculation of length) will have a `None` entry in the list.
@@ -1918,7 +1922,7 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
         >>> prj2 = pyfimm.Project( 'New PyFIMM Project', build=True )
         >>> DevObj = prj2.import_device( prj,  "Name Of My Device In The Project" )
     
-    If the Device relies on other waveguides & slabs, it's easiest if those WGs/slabs are stroed as SubNodes of the Device to copy, such that they are copied along with the Device.  If they aren't stored as SubNodes, then you'll want to import those dependency nodes individually via `Project.import_node()`.
+    If the Device relies on other waveguides & slabs, it's easiest if those WGs/slabs are stored as SubNodes of the Device to copy, such that they are copied along with the Device.  If they aren't stored as SubNodes, then you'll want to import those dependency nodes individually via `Project.import_node()`.
     '''
     
     '''Note that `obj` will be a Project object, if this function is called from the Project object's methods'''
@@ -1946,7 +1950,7 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
     dev.nodestring = devname    # use this to reference the device in Fimmwave
     
     # Identify the type of element:
-    ret = strip_txt(  fimm.Exec( '%s.objtype'%(dev.nodestring) )  )
+    ret = strip_txt(  dev.Exec( 'objtype' , check_built=False)  )
     if ret != 'FPDeviceNode':
         ErrStr = "The referenced node `%s` is not a FimmProp Device or couldn't be found!\n\t"%(fimmpath) + "FimmWave returned object type:\n\t`%s`."%(ret)
         raise ValueError(ErrStr)
@@ -2013,10 +2017,10 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
 
                     TempDev = "Device_%i" %(  get_next_refnum()  )  # generate dev reference name
                     fimm.Exec(   'Ref& ' + TempDev + ' = ' + dev.parent.nodestring + '.findnode("' + refpos + '")'   )
-                    dev.elementpos.append( TempDev )     # str indicates element is another node
+                    dev.elementpos.append( (elnum,TempDev) )     # str indicates element is another node
                     
-                    # use the above to locate eth device and get the length!
-                    dev.lengths.append(  None  )  #  <--- should resolve the reference and get the length! importnat for plotting!
+                    # use the above to locate the device and get the length!
+                    dev.lengths.append(  None  )  #  <--- should resolve the reference and get the length! important for plotting!
 
                 #dev.lengths.append(    dev.parent.checkvar(   dev.Exec( "cdev.eltlist[%i].length"%(refpos) )   )    )
                 #dev.lengths.append(    dev.Exec( "cdev.eltlist[%i].length"%(refpos) )    )

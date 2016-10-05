@@ -324,7 +324,7 @@ class Node(object):
         fimm.Exec(  "%s.delete()"%(self.nodestring)  )
         
     
-    def Exec(self, string, vars=[]):
+    def Exec(self, fpstring, check_built=True, vars=[]):
         '''Send raw command referencing this Node.
         For example:
             MyWaveGuide.Exec( "findorcreateview()" )   # to make FimmWave show the Waveguide window
@@ -337,11 +337,28 @@ class Node(object):
             self.Exec(  'findorcreateview()'  )
         
         See `help(pyfimm.Exec)` for additional info.
+
+        Parameters
+        ----------
+        fpstring : str
+            FimmProp command to send to this Node. Omit initial period.
+
+        check_built: { True | False }, optional
+            If True, will raise an error if the Node does not have it's `built` flag set.  Otherwise will ignore the `built` flag.
+
+        vars : list, optional
+            Similar to pyfimm.Exec(), a list of arguments to pass.
+
+        Returns
+        -------
+        If anything is returned by the FimmProp commandline, the output will be sanitized and returned.
+        Lists will have the `None` elements removed, and Strings will have the EOF character removed.
         '''
-        if self.built:
-            out = fimm.Exec( self.nodestring + "." + string,   vars)
-        else:
-            raise UserWarning(  "Node is not built yet, can't reference this Node yet!  Please run `MyNode.Build()` first."  ) 
+        if check_built:
+            if not self.built:
+                raise UserWarning(  "Node is not built yet, can't reference this Node yet!  Please run `MyNode.Build()` first."  ) 
+
+        out = fimm.Exec( self.nodestring + "." + fpstring,   vars)
         if isinstance(out, list): out = strip_array(out)
         if isinstance(out, str):  out = strip_text(out)
         return out
