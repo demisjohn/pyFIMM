@@ -179,7 +179,8 @@ class Device(Node):
         try:
             return np.sum(self.lengths)
         except TypeError:
-            raise ValueError("Could not determine length of some Device elements. Possibly due to ELement referencing another node.")
+            pass
+            #raise ValueError("Could not determine length of some Device elements. Possibly due to ELement referencing another node.")
     
     def set_length(self,element_num,length):
         '''Set the length of a particular element in the Device.  (Elements are counted from the left-most side first, starting at #1.)  
@@ -1947,6 +1948,10 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
     ret = fimm.Exec( fpStr )
     ret = strip_txt( ret )
     if DEBUG(): print "\tReturned:\n%s"%(ret)
+    if ret.startswith("ERROR") or (ret.find("could not find node") != -1):
+        ErrStr = "import_device(): Error locating fimmprop node '%s'."%(fimmpath)
+        ErrStr += "  FimmProp returned the message:\n\t%s"%(ret)
+        raise ValueError(ErrStr)
     dev.nodestring = devname    # use this to reference the device in Fimmwave
     
     # Identify the type of element:
@@ -1985,8 +1990,8 @@ def _import_device( obj='device', project=None, fimmpath=None, name=None, overwr
 
     for   i, el    in enumerate(els):
         elnum=i+1   # 1-indexing in FP
-        objtype = strip_text(    dev.Exec(  "cdev.eltlist[%i].objtype"%(elnum)  )    )
-        dev.elements.append(objtype.strip())
+        objtype = dev.Exec(  "cdev.eltlist[%i].objtype"%(elnum)  ).strip()
+        dev.elements.append(objtype)
         
         if objtype=='FPsimpleJoint' or objtype == 'FPioSection':
             '''SimpleJoints,IOports have no length, 
