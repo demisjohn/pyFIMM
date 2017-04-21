@@ -1,5 +1,5 @@
-versionnum     =   "1.3.2"         # the version number
-versiondate =   "2015-12-10"    # the date of this version
+versionnum     =   "1.3.3"         # the version number
+versiondate =   "2017-04-20"    # the date of this version
 
 version = "v"+versionnum+", "+versiondate
 

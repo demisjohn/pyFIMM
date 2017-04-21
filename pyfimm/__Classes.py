@@ -587,7 +587,7 @@ def import_project(filepath, name=None, overwrite=False, warn=False):
     
     overwrite : { True | False | 'reuse' }, optional
         If True, will overwrite an already-open Fimmwave project that has the same name in Fimmwave.  If False, will append timestamp (ms only) to supplied project name.  
-        If 'reuse', then an existing Project will simply be pointed to by th enew object, but not altered.
+        If 'reuse', then a Project that is already open in FimmWave will simply be pointed to by the new object, but not altered in any way.
         False by default.
     
     warn : { True | False }, optional
