@@ -102,9 +102,9 @@ pyFIMM currently only supports Python 2.7.
 
 To use pyFIMM, simply download one of the released versions (see the "releases" or "tags" section of this page), or the bleeding-edge code, and extract the archive into a directory.  Your Python script should reside in the same directory as the *pyfimm* folder, or else you should add the parent directory of the *pyfimm* folder to your Python path at the beginning of your script.    
 
-These pyfimm scripts can be run like any typical Python script (eg. on the command line via `python myScript.py` or `python -i myScript.py` to interact afterwards).  
+The preferred method to run your scripts is through a Python IDE like Spyder (a matlab-like IDE).  The simplest installation of Spyder (along with all typical scientific python modules) can be accomplished via [Python(x,y)](https://code.google.com/p/pythonxy/) (Win) or [Anaconda](http://continuum.io/downloads) (Mac,Win,Linux). 
 
-The preferred method is through a Python IDE like Spyder (a matlab-like IDE).  The simplest installation of Spyder (along with all typical scientific python modules) can be accomplished via [Python(x,y)](https://code.google.com/p/pythonxy/) (Win) or [Anaconda](http://continuum.io/downloads) (Mac,Win,Linux). 
+These pyfimm scripts can also be run like any typical Python script on the command line via `python myScript.py` or `python -i myScript.py` to make it interactive afterwards.
 
 ### Setting up FimmWave for Scripting
 Make sure your FimmWave executable starts up with the ability to interact with external scripts like Python/Matlab (see FimmWave manual section 11.9).
