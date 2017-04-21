@@ -128,9 +128,11 @@ Note the single & double quotes!
 Since FimmWave & FimmProp require Windows, you must run this on a Windows system with FimmWave installed (or via a virtual-machine of some sort).  
 * [FimmWave by Photon Design](http://www.photond.com/products/fimmwave.htm), setup with TCP port access (see FimmWave manual section on Python usage, sec. 11.9).
 * Python 2.7 (may work on other 2.x versions, untested)
-* [numpy python package](http://www.numpy.org)
-* [matplotlib python package](http://matplotlib.org)
-    * **RECOMMENDED**: both of the above Python modules are included as part of the scientific python environments [Python(x,y)](https://code.google.com/p/pythonxy/) and [Anaconda](http://continuum.io/downloads)).
+    * [numpy python package](http://www.numpy.org)
+    * [matplotlib python package](http://matplotlib.org)
+    * **RECOMMENDED**: all of the above Python modules are included as part of the scientific python environments 
+        * [Python(x,y)](https://code.google.com/p/pythonxy/) and 
+        * [Anaconda](http://continuum.io/downloads)).
     * These packages include everything you need for scientific python work, including a Matlab-like IDE interface.
 
 ### Contact
