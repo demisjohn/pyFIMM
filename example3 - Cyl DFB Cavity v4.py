@@ -18,7 +18,7 @@
 
 import numpy as np    # Array math.functions.  Used here for `argmax()`.
 
-import pyfimm as pf   # Every script must begin with this line
+import pyfimm as pf   # Import the pyFIMM module
 ''' Get help on commands and objects by typing things into the console, like:
 >>> help(pyfimm)   or after the above import,    >>> help(pf)
 >>> help(pyfimm.set_mode_solver)
@@ -47,7 +47,7 @@ pf.connect()        # this connects to the FimmWave application.  The FimmWave p
 
 wl = 1.100  # center wavelength in microns - sets the Bragg wavelength
 
-# Set Parameters (Your copy of FIMMWAVE has default values for these. You can change more than shown here. See __jaredwave.py
+# Set Parameters (Your copy of FIMMWAVE has default values for these. You can change more than shown here. 
 import sys
 ScriptPath = sys.path[0]                    # Get directory of this script
 pf.set_working_directory(ScriptPath)       # Set FimmWave directory to the location of your script (needed to capture output files)
@@ -58,8 +58,8 @@ pf.set_wavelength( wl )                    # The unit of space is always 1 micro
 pf.set_N_1d(100)                           # Num. of 1D modes found in each slice (FMM solver only)
 
 pf.set_N(3)                                # Num. of modes to solve for
-pf.set_Nm(1)        # theta mode order.  Can accept start/stop values as list, eg. [1,5]
-pf.set_Np(2)        # polarization mode order, also can accept start/stop values as list.
+pf.set_Nm(1)        # theta mode order.  Can accept start/stop values as list, eg. [1,5]. See `help(pf.set_Nm)`.
+pf.set_Np(2)        # polarization mode order, also can accept start/stop values as list. See `help(pf.set_Np)`.
 
 dfbproj = pf.Project('Example 3 - DFB Cavity', buildNode=True, overwrite=True)    # Create Proj & build the node in one line.  `overwrite` will overwrite an existing project with the same name.         
 
@@ -84,7 +84,7 @@ pf.set_circ_pml(0)       # thickness of perfectly matched layers for cylindrical
 Hi = pf.Circ( CoreHi(rCore) + Clad(rClad) )
 Lo = pf.Circ( CoreLo(rCore) + Clad(rClad) )
 
-#Hi.set_joint_type("special complete")   # default is "complete"
+#Hi.set_joint_type("special complete")   # default is "complete". Set this before building the FimmProp Device node.
 #Lo.set_joint_type("special complete")
 
 # Build these waveguides in FimmWave.  The Device will reference the pre-built waveguide nodes.
@@ -100,7 +100,7 @@ dLo = wl/4/n_AlGaAs #89.28571e-3
 Nperiods = 50
 # Devices are built from left to right:
 dfb_left = pf.Device(   Lo(1.0) + Nperiods*( Hi(dHi) + Lo(dLo) ) + Hi(dHi/2)   )     
-# With Hi waveguide cut in half at center & quarter-wave shift (Lo section with double length):
+# DFB_Right has Hi waveguide cut in half at center & quarter-wave shift (Lo section with double length):
 dfb_right = pf.Device(   Hi(dHi/2) + Lo(dLo*2) + Hi(dHi) + Nperiods*( Lo(dLo) + Hi(dHi)) + Lo(1.0)   )
 
 dfb_left.set_joint_type('special complete')
@@ -114,12 +114,13 @@ dfb_right.buildNode(name='DFBright', parent=dfbproj)
 pf.Exec(dfb_right.nodestring + '.findorcreateview()')
 pf.Exec(dfb_left.nodestring + '.findorcreateview()')
 
-dfb_right.calc()
 
 
+""" calculate modes of half the cavity only - just for demonstrating Device functions. 
+    This is not pertinent to the Cavity resonance calculation
+"""
+dfb_right.calc()    # calc scattering matrix of this Device (only half the cavity)
 dfb_right.plot_refractive_index()   # Fig1: show the refractive index versus Z for this device.
-
-
 dfb_left.set_input([1,0,0], side='right', normalize=True)   # launch only 1st Mode from right side
 dfb_left.plot('Ex', direction='left')     # Fig2: Plot Ex field for this launch, for left-propagating field (since injected on right side)
 #dfb_left.plot('Ey', refractive_index=True)  # can also plot refractive index on same figure
@@ -127,7 +128,7 @@ dfb_left.plot('Ex', direction='left')     # Fig2: Plot Ex field for this launch,
 
 
 
-# ---  Now Calculate the Cavity modes!  ---
+""" ---  Now Calculate the Cavity modes!  --- """
 #WLs = [1.080, 1.100, 1.120]              # for fast example
 #WLs = np.arange( 1.100-0.060, 1.100+0.060, 0.005 )     # coarse eigenmode calculation
 #WLs = np.concatenate([    np.arange(1.100-0.060, 1.100-0.007, 0.005) , np.arange(1.100-0.007, 1.100+0.007, 0.0005) , np.arange(1.100+0.007, 1.100+0.060, 0.005)    ])    # coarse away from resonance, fine at resonance
@@ -140,7 +141,7 @@ DFB = pf.Cavity(dfb_left, dfb_right)
 DFB.plot_refractive_index()     # Fig3: show the refractive index profile along Z, at (x,y)=(0,0)
 
 DFB.calc(WLs)       # Calculate the Cavity resonances etc.
-# try `help DFB` or dir(DFB) After calling calc() - you'll see that new variables are available, such as the eigenvectors & resonance wavelengths etc.  '''
+# try `dir(DFB)` After calling calc() - you'll see that new variables are available, such as the eigenvectors & resonance wavelengths etc. 
 
 #DFB.mode(0).plot()         # plot eigenvalues of 1st mode (plot defaults to 'EigV')
 DFB.mode('all').plot('EigVals')      # Fig4: plot eigenvalues of all modes
@@ -150,12 +151,13 @@ DFB.mode('all').plot('EigVals')      # Fig4: plot eigenvalues of all modes
 DFB.mode( [0,1] ).plot('Ex', 'resonance', refractive_index=True, title="DFB + 1/2-wave")     # Fig5: plot Ex field for the resonance wavelengths of specified modes.
 
 
-# To view the resonance mode profile:
-#    In FimmProp, on Either device, select 
-#        View > Input Field
-#    And then select the appropriate tab (Left-Hand or Right-Hand input), and
-#    click 'Update' in the Preview area, to see what the superposition of modes
-#    according to the EigenVector looks like.
-
+"""
+To view the transverse cavity mode profile:
+    In FimmProp, on Either device, select 
+        View > Input Field
+    And then select the appropriate tab (Left-Hand or Right-Hand input), and
+    click 'Update' in the Preview area, to see what the superposition of modes
+    according to the EigenVector looks like.
+"""
 
 #pyfimm.disconnect()      # close TCP connection to application.
