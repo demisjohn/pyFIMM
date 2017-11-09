@@ -414,6 +414,9 @@ class Cavity(object):
         self.__PDproj = []
         self.__eigen_imag = []
         self.__eigen_real = []
+        self.S_RHS_ll = []
+        self.S_LHS_rr = []
+        self.S_RT = []
         
         
         fimm.Exec("Ref& parent = app")
@@ -425,13 +428,11 @@ class Cavity(object):
         fimm.Exec("Ref& fpRHS = " + RHS.nodestring)
         
         
-        # At this stage we will retrieve the number of modes in the central section
-
+        # Retrieve the number of modes in the central section
         N=fimm.Exec("fpRHS.cdev.eltlist[1].mlp.maxnmodes")  # could replace with `self.RHS.element...`
         while 1:
             try:
                 N = int(N)  # check if numerical value returned
-                
                 break
             except ValueError:
                 print self.name + ".calc:CavityModeCalc(): WARNING: Could not identify how many modes are calculated in the cavity, using get_N()"
@@ -439,13 +440,8 @@ class Cavity(object):
 
         #if DEBUG(): print "CMC(): N={}".format(N)
 
-        """
-        if (Nguided==0):
-            '''Hard-coded so Nguided=0'''
-            Nguided=N
-        """
-
-        # for printing our the eigenvectros/values:
+        
+        # for printing our the eigenvectors/values:
         Ndisplay = N   # we want to display all the modes
 
         labels = "lambda "
@@ -481,7 +477,7 @@ class Cavity(object):
             fimm.Exec("fpRHS.reset1()")
             fimm.Exec("fpLHS.reset1()")
             fimm.Exec("fpRHS.update()")   # calc the Scattering Matrix
-            RRHS = np.zeros([N,N],dtype=complex)
+            RRHS = np.zeros( [N,N], dtype=complex  )
             SMAT = []
             for i in range(1,N+1,1):
                 ''' Get Left-to-Left (reflecting) scattering matrix for Right-hand-side of cavity, for each WG mode.'''
@@ -489,11 +485,11 @@ class Cavity(object):
             for i in range(1,N+1,1):
                 for k in range(1,N+1,1):
                     RRHS[i-1][k-1] = SMAT[i-1][k] # the index "k" is due to the fact that the first element of each line is "None"
-            #print "RRHS:" # temp
-            #print RRHS # temp
+            #if DEBUG(): print "RRHS:" # temp
+            #if DEBUG(): print RRHS # temp
             
             
-            self.S_RHS_ll = RRHS # store the left-to-left scattering matrix
+            self.S_RHS_ll.append( RRHS ) # store the left-to-left scattering matrix
             
             
             
@@ -519,24 +515,13 @@ class Cavity(object):
                     RLHS[i-1][k-1] = SMAT[i-1][k] # the index "k" is due to the fact that the first element of each line is "None"
             
             
-            self.S_LHS_rr = RLHS    # store the right-to-right scattering matrix
+            self.S_LHS_rr.append( RLHS )    # store the right-to-right scattering matrix
             
             
             
             ''' Calculate the round-trip matrix R2, by multiplying reflecting Smat's of each side of cavity.     '''
             R2 = np.dot(RRHS,RLHS)  # combined scattering matrix for cavity round-trip
-            self.S_RT = R2  # round-trip scattering matrix
-
-            '''
-            # optional, if Nguided < N: truncate the matrix to the guided modes.  Nguided = N, numModes (hard-coded)
-            if Nguided < N:
-                R2guided = np.zeros([Nguided,Nguided],dtype=complex)
-                for i in range(0,Nguided,1):
-                    for k in range(0,Nguided,1):
-                        R2guided[i][k] = R2[i][k]
-            else:
-                R2guided=R2     # only this clause runs
-            '''
+            self.S_RT.append( R2 )  # store round-trip scattering matrix at this wavelength
             
             
             # solve eigenproblem
@@ -579,6 +564,7 @@ class Cavity(object):
             '''
             
             
+            
             # Sorting by predominant mode number, instead of max eigenvalue.
             '''
             eg. sort eigenvalues according to which mode is largest in the eigenvector:
@@ -602,7 +588,7 @@ class Cavity(object):
             EigVect_n = []
             EigVal_n = []
             
-            # display eigenvalues + save eigvals:
+            # display eigenvalues + save eigvals for each WG mode:
             outputstr = str(wavelength) + " "
             for i in range(0,Ndisplay,1):
                 ## Save eigenvector/eigenvalue for this mode
