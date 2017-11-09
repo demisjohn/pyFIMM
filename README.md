@@ -14,10 +14,12 @@ The FimmWave/FimmProp GUI contains much functionality that is not implemented by
 Some examples of pyFIMM's utility include large multivariable sweeps and subsequent plotting (eg. waveguide width, thickness and wavelength) & devices that require analysis between sweep iterations (eg. the resonant cavity, in which eigenvalues are calculated at each wavelength to determine the resonant wavelength and resulting cavity mode profile).
 Some analysis functions are included, based on examples provided by Photon Design.  Some useful features are the ability to solve/plot the fields in an optical Cavity & Mode/Field-plotting.
 
+
 ### Wavelength Sweep of a Waveguide object:
 ![Waveguide wavelength sweep](pyfimm/media/WG_Wavelength_Sweep_Animation_v3.gif)
 
-### Cavity Mode Solver, locating the cavity resonance at 1.100\mu{}m
+
+### Cavity Mode Solver, locating the cavity resonance at 1.100 microns
 ![Cavity Mode Solve](pyfimm/media/Cavity.calc_-_field_01.png)
 ![Cavity Mode Solve](pyfimm/media/Cavity.calc_-_field_02.png)
 
