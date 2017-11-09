@@ -15,11 +15,11 @@ Some examples of pyFIMM's utility include large multivariable sweeps and subsequ
 Some analysis functions are included, based on examples provided by Photon Design.  Some useful features are the ability to solve/plot the fields in an optical Cavity & Mode/Field-plotting.
 
 ### Wavelength Sweep of a Waveguide object:
-![Waveguide wavelength sweep](pyfimm/media/WG Wavelength Sweep Animation v3.gif)
+![Waveguide wavelength sweep](pyfimm/media/WG_Wavelength_Sweep_Animation_v3.gif)
 
 ### Cavity Mode Solver, locating the cavity resonance at 1.100\mu{}m
-![Cavity Mode Solve](pyfimm/media/Cavity.calc() - field 01.png)
-![Cavity Mode Solve](pyfimm/media/Cavity.calc() - field 02.png)
+![Cavity Mode Solve](pyfimm/media/Cavity.calc_-_field_01.png)
+![Cavity Mode Solve](pyfimm/media/Cavity.calc_-_field_02.png)
 
 The interface is set up like [Peter Beinstman's CAMFR (CAvity Modelling FRamework)](http://camfr.sourceforge.net) system, in which 1-D Slices are concatenated to produce arbitrary 2-D index profiles, which can be further concatenated to produce full 3-D photonic integrated circuits. This is also similar to how you construct waveguides via Slices in the FimmWave GUI.
 
