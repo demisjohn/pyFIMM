@@ -7,12 +7,19 @@ Updated by Demis D. John, 2014-present.
 
 ## Description
 
-pyFIMM provides a CAMFR-like scripting interface to [Photon Design's FIMMWAVE/FIMMPROP electromagnetic/photonic simulation tools](http://www.photond.com/products/fimmwave.htm), for Python, to construct, simulate, plot and analyze photonic devices using FimmWave.  This enables one to do additional analysis and math on your simulations from python itself, and define complex Python functions or loops that use FimmWave to do the heavy-lifting of solving for modes and Scattering Matrices, but analyze and plot the data in Python. You can also script nodes you've constructed using the PhotonDesign GUIs. FimmWave can return solved field values & mode profiles or plot modes/fields directly in MatPlotLib.
+pyFIMM provides a Python scripting interface to [Photon Design's FIMMWAVE/FIMMPROP electromagnetic/photonic simulation tools](http://www.photond.com/products/fimmwave.htm), to construct, simulate, sweep, plot and analyze photonic devices using FimmWave.  This enables one to do additional analysis and math on your simulations from python itself, and define complex Python functions or loops that use FimmWave to do the heavy-lifting of solving for modes and Scattering Matrices, but analyze and plot the data in Python. You can also interact with nodes you've constructed using the PhotonDesign GUIs. FimmWave can return solved field values & mode profiles or plot modes/fields directly in MatPlotLib.
 
 The FimmWave/FimmProp GUI contains much functionality that is not implemented by *pyFIMM*, so pyFIMM includes the ability to import saved Projects, Devices and Waveguides and run analysis on them. This way you can design your device in the FimmProp GUI, and run sweeps, data analysis and plotting via pyFIMM.
 
 Some examples of pyFIMM's utility include large multivariable sweeps and subsequent plotting (eg. waveguide width, thickness and wavelength) & devices that require analysis between sweep iterations (eg. the resonant cavity, in which eigenvalues are calculated at each wavelength to determine the resonant wavelength and resulting cavity mode profile).
 Some analysis functions are included, based on examples provided by Photon Design.  Some useful features are the ability to solve/plot the fields in an optical Cavity & Mode/Field-plotting.
+
+### Wavelength Sweep of a Waveguide object:
+![Waveguide wavelength sweep](pyfimm/media/WG Wavelength Sweep Animation v3.gif)
+
+### Cavity Mode Solver, locating the cavity resonance at 1.100\mu{}m
+![Cavity Mode Solve](pyfimm/media/Cavity.calc() - field 01.png)
+![Cavity Mode Solve](pyfimm/media/Cavity.calc() - field 02.png)
 
 The interface is set up like [Peter Beinstman's CAMFR (CAvity Modelling FRamework)](http://camfr.sourceforge.net) system, in which 1-D Slices are concatenated to produce arbitrary 2-D index profiles, which can be further concatenated to produce full 3-D photonic integrated circuits. This is also similar to how you construct waveguides via Slices in the FimmWave GUI.
 
