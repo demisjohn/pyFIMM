@@ -19,7 +19,7 @@ Some analysis functions are included, based on examples provided by Photon Desig
 ![Waveguide wavelength sweep](pyfimm/media/WG_Wavelength_Sweep_Animation_v3.gif)
 
 
-### Cavity Mode Solver, locating the cavity resonance at 1.100 microns
+### Cavity Mode Solver: locating the cavity resonance wavelength
 ![Cavity Mode Solve](pyfimm/media/Cavity.calc_-_field_01.png)
 ![Cavity Mode Solve](pyfimm/media/Cavity.calc_-_field_02.png)
 
