@@ -1,8 +1,11 @@
 # pyFIMM
 A Python Interface to [PhotonDesign's FimmWave/FimmProp software](http://www.photond.com/products/fimmwave.htm).
+
+><b>PhotonDesign has now incorporated this functionality into their tools, with auto-generated full OO python interface!  Don't use this python module, instead use PhotonDesign's built-in python libraries.</b>
+
 Interface based on [Peter Beinstman's CAMFR simulation software](http://camfr.sourceforge.net).
 Originally created by Jared F. Bauters at the [University of California Santa Barbara](ucsb.edu) in 2011; 
-Updated by Demis D. John, 2014-present.
+Updated by Demis D. John, 2014-2017.
 
 
 ## Description
